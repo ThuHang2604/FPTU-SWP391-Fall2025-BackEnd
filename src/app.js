@@ -2,28 +2,14 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+const swaggerDocs = require('./config/swagger'); // import swagger config
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Swagger config
-const swaggerOptions = {
-  definition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'EV Trading Platform API',
-      version: '1.0.0',
-      description: 'API Documentation for FPTU-SWP391-Fall2025-BackEnd',
-    },
-    servers: [{ url: `http://localhost:${process.env.PORT || 8000}` }],
-  },
-  apis: ['./routes/*.js'],
-};
-
-const swaggerDocs = swaggerJsDoc(swaggerOptions);
+// Swagger route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // Routes
