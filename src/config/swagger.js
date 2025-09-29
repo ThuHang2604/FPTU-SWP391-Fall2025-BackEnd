@@ -10,7 +10,7 @@ const swaggerOptions = {
     },
     servers: [{ url: `http://localhost:${process.env.PORT || 8000}` }],
   },
-  apis: ['./routes/*.js'], // Swagger sẽ đọc docs trong các file routes
+  apis: ['./src/routes/*.js'], // Swagger sẽ đọc docs trong các file routes
 };
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);

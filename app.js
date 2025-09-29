@@ -3,7 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const swaggerUi = require('swagger-ui-express');
-const swaggerDocs = require('./config/swagger'); // import swagger config
+const swaggerDocs = require('./src/config/swagger'); 
 
 const app = express();
 app.use(cors());
@@ -17,11 +17,11 @@ app.get('/', (req, res) =>
   res.send('✅ EV Trading Platform Backend is running...')
 );
 
-const authRoutes = require('./routes/auth.routes');
+const authRoutes = require('./src/routes/auth.routes');
 app.use('/api/auth', authRoutes);
 
 // DB setup
-const db = require('./models');
+const db = require('./src/models');
 db.sequelize
   .authenticate()
   .then(() => {
