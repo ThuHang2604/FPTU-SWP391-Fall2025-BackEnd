@@ -61,11 +61,11 @@ module.exports = (sequelize, DataTypes) => {
       },
       status: {
         type: DataTypes.ENUM(
-          'PENDING',
-          'APPROVED',
-          'REJECTED',
-          'SOLD',
-          'INACTIVE'
+          'PENDING', // Tin vừa được đăng, chờ duyệt
+          'APPROVED', // Tin đã được duyệt và hiển thị công khai
+          'REJECTED', // Tin bị từ chối duyệt
+          'SOLD',   // Tin đã bán và không còn hiển thị
+          'INACTIVE' // Tin không còn hoạt động (có thể do người dùng ẩn hoặc hết hạn)
         ),
         defaultValue: 'PENDING',
       },
