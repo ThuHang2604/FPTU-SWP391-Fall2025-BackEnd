@@ -47,15 +47,44 @@ exports.getProductDetail = async (req, res) => {
 // Yêu cầu đăng nhập
 exports.createProduct = async (req, res) => {
   try {
-    const { category_id, title, description, price } = req.body;
-    const product = await Product.create({
-      member_id: req.user.userId,
+    const {
       category_id,
       title,
       description,
       price,
+      usage_duration,
+      warranty_info,
+      location,
+      brand,
+      model,
+      year,
+      mileage,
+      battery_type,
+      capacity,
+      cycle_count,
+      compatible_with
+    } = req.body;
+
+    const product = await Product.create({
+      member_id: req.user.userId,
+      category_id,
+      title,
+      description: description || null,
+      price,
+      usage_duration: usage_duration || null,
+      warranty_info: warranty_info || null,
+      location: location || null,
+      brand: brand || null,
+      model: model || null,
+      year: year || null,
+      mileage: mileage || null,
+      battery_type: battery_type || null,
+      capacity: capacity || null,
+      cycle_count: cycle_count || null,
+      compatible_with: compatible_with || null,
       status: "PENDING",
     });
+
     res.status(201).json(product);
   } catch (err) {
     res.status(500).json({ message: "Internal server error", err });

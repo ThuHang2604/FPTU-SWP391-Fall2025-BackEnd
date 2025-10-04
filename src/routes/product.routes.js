@@ -3,6 +3,7 @@ const router = express.Router();
 const productController = require("../controllers/product.controller");
 const authMiddleware = require("../middlewares/authMiddleware");
 const adminMiddleware = require("../middlewares/adminMiddleware");
+const { validateProductCreate, validateProductUpdate } = require("../middlewares/productValidation");
 
 /**
  * @swagger
@@ -91,6 +92,10 @@ router.get("/:id", productController.getProductDetail);
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - category_id
+ *               - title
+ *               - price
  *             properties:
  *               category_id:
  *                 type: integer
@@ -100,11 +105,46 @@ router.get("/:id", productController.getProductDetail);
  *                 type: string
  *               price:
  *                 type: number
+ *               usage_duration:
+ *                 type: string
+ *                 nullable: true
+ *               warranty_info:
+ *                 type: string
+ *                 nullable: true
+ *               location:
+ *                 type: string
+ *                 nullable: true
+ *               brand:
+ *                 type: string
+ *                 nullable: true
+ *               model:
+ *                 type: string
+ *                 nullable: true
+ *               year:
+ *                 type: integer
+ *                 nullable: true
+ *               mileage:
+ *                 type: integer
+ *                 nullable: true
+ *               battery_type:
+ *                 type: string
+ *                 nullable: true
+ *               capacity:
+ *                 type: string
+ *                 nullable: true
+ *               cycle_count:
+ *                 type: integer
+ *                 nullable: true
+ *               compatible_with:
+ *                 type: string
+ *                 nullable: true
  *     responses:
  *       201:
  *         description: Product created
+ *       400:
+ *         description: Dữ liệu không hợp lệ
  */
-router.post("/", authMiddleware, productController.createProduct);
+router.post("/", authMiddleware, validateProductCreate, productController.createProduct);
 
 /**
  * @swagger
@@ -143,14 +183,16 @@ router.get("/member", authMiddleware, productController.getProductByMemberId);
  *     responses:
  *       200:
  *         description: Product updated
+ *       400:
+ *         description: Dữ liệu không hợp lệ
  */
-router.put("/:id/info", authMiddleware, productController.updateProductInfo);
+router.put("/:id/info", authMiddleware, validateProductUpdate, productController.updateProductInfo);
 
 /**
  * @swagger
  * /api/products/{id}/status:
  *   put:
- *     summary: Cập nhật trạng thái (MEMBER: SOLD/INACTIVE)
+ *     summary: Cập nhật trạng thái (MEMBER => SOLD/INACTIVE)
  *     tags: [Products]
  *     security:
  *       - bearerAuth: []
@@ -180,7 +222,7 @@ router.put("/:id/status", authMiddleware, productController.updateProductStatus)
  * @swagger
  * /api/products/{id}/moderate:
  *   put:
- *     summary: Duyệt sản phẩm (ADMIN: APPROVED/REJECTED)
+ *     summary: Duyệt sản phẩm (ADMIN => APPROVED/REJECTED)
  *     tags: [Products]
  *     security:
  *       - bearerAuth: []
