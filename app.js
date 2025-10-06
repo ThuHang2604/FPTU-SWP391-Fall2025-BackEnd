@@ -20,6 +20,18 @@ app.get('/', (req, res) =>
 const authRoutes = require('./src/routes/auth.routes');
 app.use('/api/auth', authRoutes);
 
+const categoryRoutes = require('./src/routes/category.routes');
+app.use('/api/categories', categoryRoutes);
+
+const productRoutes = require('./src/routes/product.routes');
+app.use('/api/products', productRoutes);
+
+const productMediaRoutes = require('./src/routes/productMedia.routes');
+app.use('/api/product-media', productMediaRoutes);
+
+const productApprovalRoutes = require('./src/routes/productApproval.routes');
+app.use('/api/product-approvals', productApprovalRoutes);
+
 // DB setup
 const db = require('./src/models');
 db.sequelize
