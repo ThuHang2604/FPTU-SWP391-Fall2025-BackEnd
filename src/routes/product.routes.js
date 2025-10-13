@@ -3,20 +3,23 @@ const router = express.Router();
 const productController = require("../controllers/product.controller");
 const authMiddleware = require("../middlewares/authMiddleware");
 const adminMiddleware = require("../middlewares/adminMiddleware");
-const { validateProductCreate, validateProductUpdate } = require("../middlewares/productValidation");
+const {
+  validateProductCreate,
+  validateProductUpdate,
+} = require("../middlewares/productValidation");
 
 /**
  * @swagger
  * tags:
  *   name: Products
- *   description: Product management APIs
+ *   description: Product management APIs (include media)
  */
 
 /**
  * @swagger
  * /api/products:
  *   get:
- *     summary: Lấy tất cả sản phẩm
+ *     summary: Lấy tất cả sản phẩm (kèm danh sách media)
  *     tags: [Products]
  *     responses:
  *       200:
@@ -28,7 +31,7 @@ router.get("/", productController.getAllProduct);
  * @swagger
  * /api/products/category/{cateId}:
  *   get:
- *     summary: Lấy sản phẩm theo category id
+ *     summary: Lấy sản phẩm theo category id (kèm media)
  *     tags: [Products]
  *     parameters:
  *       - in: path
@@ -46,7 +49,7 @@ router.get("/category/:cateId", productController.getProductByCateId);
  * @swagger
  * /api/products/search:
  *   get:
- *     summary: Tìm kiếm sản phẩm theo tên
+ *     summary: Tìm kiếm sản phẩm theo tên (kèm media)
  *     tags: [Products]
  *     parameters:
  *       - in: query
@@ -64,7 +67,7 @@ router.get("/search", productController.search);
  * @swagger
  * /api/products/{id}:
  *   get:
- *     summary: Lấy chi tiết sản phẩm
+ *     summary: Lấy chi tiết sản phẩm (bao gồm media)
  *     tags: [Products]
  *     parameters:
  *       - in: path
@@ -74,7 +77,7 @@ router.get("/search", productController.search);
  *           type: integer
  *     responses:
  *       200:
- *         description: Thông tin sản phẩm
+ *         description: Thông tin sản phẩm chi tiết
  */
 router.get("/:id", productController.getProductDetail);
 
@@ -82,7 +85,7 @@ router.get("/:id", productController.getProductDetail);
  * @swagger
  * /api/products:
  *   post:
- *     summary: Tạo sản phẩm mới (MEMBER)
+ *     summary: Tạo sản phẩm mới (MEMBER, có thể thêm media kèm theo)
  *     tags: [Products]
  *     security:
  *       - bearerAuth: []
@@ -138,9 +141,20 @@ router.get("/:id", productController.getProductDetail);
  *               compatible_with:
  *                 type: string
  *                 nullable: true
+ *               media:
+ *                 type: array
+ *                 description: Danh sách hình ảnh hoặc video của sản phẩm
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     media_url:
+ *                       type: string
+ *                     media_type:
+ *                       type: string
+ *                       enum: [IMAGE, VIDEO]
  *     responses:
  *       201:
- *         description: Product created
+ *         description: Product created with media
  *       400:
  *         description: Dữ liệu không hợp lệ
  */
@@ -150,7 +164,7 @@ router.post("/", authMiddleware, validateProductCreate, productController.create
  * @swagger
  * /api/products/member:
  *   get:
- *     summary: Lấy danh sách sản phẩm của Member đang đăng nhập
+ *     summary: Lấy danh sách sản phẩm của Member đang đăng nhập (kèm media)
  *     tags: [Products]
  *     security:
  *       - bearerAuth: []
@@ -180,9 +194,33 @@ router.get("/member", authMiddleware, productController.getProductByMemberId);
  *         application/json:
  *           schema:
  *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *               location:
+ *                 type: string
+ *               brand:
+ *                 type: string
+ *               model:
+ *                 type: string
+ *               media:
+ *                 type: array
+ *                 description: Danh sách media mới (sẽ thay thế toàn bộ media cũ)
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     media_url:
+ *                       type: string
+ *                     media_type:
+ *                       type: string
+ *                       enum: [IMAGE, VIDEO]
  *     responses:
  *       200:
- *         description: Product updated
+ *         description: Product updated (media replaced)
  *       400:
  *         description: Dữ liệu không hợp lệ
  */

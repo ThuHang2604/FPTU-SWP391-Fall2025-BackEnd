@@ -28,8 +28,8 @@ db.Product.belongsTo(db.Category, { foreignKey: 'category_id' });
 db.Member.hasMany(db.Product, { foreignKey: 'member_id', onDelete: 'CASCADE' });
 db.Product.belongsTo(db.Member, { foreignKey: 'member_id' });
 
-db.Product.hasMany(db.ProductMedia, { foreignKey: 'product_id', onDelete: 'CASCADE' });
-db.ProductMedia.belongsTo(db.Product, { foreignKey: 'product_id' });
+db.Product.hasMany(db.ProductMedia, { foreignKey: 'product_id', as: 'media', onDelete: 'CASCADE' });
+db.ProductMedia.belongsTo(db.Product, { foreignKey: 'product_id', as: 'product' });
 
 db.Product.hasMany(db.ProductApproval, { foreignKey: 'product_id', onDelete: 'CASCADE' });
 db.ProductApproval.belongsTo(db.Product, { foreignKey: 'product_id' });
