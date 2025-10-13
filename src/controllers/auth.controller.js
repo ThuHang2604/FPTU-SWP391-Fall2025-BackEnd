@@ -71,3 +71,55 @@ exports.login = async (req, res) => {
     res.status(500).json({ message: 'Internal server error', error });
   }
 };
+
+/**
+ * [GET] /api/auth/profile
+ * → Lấy thông tin người dùng đang đăng nhập
+ */
+exports.getUserProfile = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.userId, {
+      include: [
+        { model: Member, attributes: ['address'] },
+        { model: Admin, attributes: [] },
+      ],
+    });
+
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: 'Internal server error', error });
+  }
+};
+
+/**
+ * [PUT] /api/auth/profile
+ * → Cập nhật thông tin cá nhân (chỉ người đã đăng nhập)
+ */
+exports.updateUserProfile = async (req, res) => {
+  try {
+    const { full_name, phone, address } = req.body;
+
+    const user = await User.findByPk(req.user.userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.full_name = full_name || user.full_name;
+    user.phone = phone || user.phone;
+    await user.save();
+
+    // Nếu là member thì cập nhật địa chỉ
+    if (user.role === 'MEMBER') {
+      const member = await Member.findOne({ where: { user_id: user.id } });
+      if (member) {
+        member.address = address || member.address;
+        await member.save();
+      }
+    }
+
+    res.json({ message: 'Profile updated successfully', user });
+  } catch (error) {
+    res.status(500).json({ message: 'Internal server error', error });
+  }
+};
+
