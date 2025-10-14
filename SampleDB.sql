@@ -1,69 +1,111 @@
 USE ev_trading_platform;
 
-INSERT INTO categories (name, description)
-VALUES
-('Xe điện', 'Các dòng xe máy điện và xe đạp điện đã qua sử dụng.'),
-('Pin', 'Pin xe điện, pin lithium-ion, và phụ kiện sạc.'),
-('Phụ kiện', 'Mũ bảo hiểm, sạc, và phụ kiện cho xe điện.');
+-- =========================
+-- THÊM NGƯỜI DÙNG MẪU
+-- =========================
 
--- ========================
--- 5️⃣ INSERT PRODUCTS
--- ========================
+-- 1. Admin
+INSERT INTO users (full_name, email, password, phone, role, avatar, status)
+VALUES ('Admin System', 'admin@example.com', '$2b$10$OsESrJbKm4ra8F50yw8S2eezgP3ZqFJUy8Zmhuqe3VEYYkZ2jKi7S', '0900000001', 'ADMIN',
+'https://i.pinimg.com/736x/b9/e0/e3/b9e0e30ac1ec95077b7e1d0abd250e5d.jpg', 'ACTIVE');
+
+-- 2. Member
+INSERT INTO users (full_name, email, password, phone, role, avatar, status)
+VALUES ('User Test', 'user@example.com', '$2b$10$OsESrJbKm4ra8F50yw8S2eezgP3ZqFJUy8Zmhuqe3VEYYkZ2jKi7S', '0900000002', 'MEMBER',
+'https://i.pinimg.com/736x/08/33/b9/0833b999afd16f9266d4af47d18a8ae5.jpg', 'ACTIVE');
+
+-- =========================
+-- THÊM VÀO BẢNG CON
+-- =========================
+-- Tạo Admin & Member tương ứng
+INSERT INTO admins (user_id) VALUES (1);
+INSERT INTO members (user_id, address) VALUES (2, '123 Đường Nguyễn Trãi, Quận 1, TP.HCM');
+
+-- =========================
+-- DANH MỤC SẢN PHẨM
+-- =========================
+INSERT INTO categories (name, description) VALUES
+('Pin', 'Các loại pin xe điện, pin lithium-ion, pin thay thế.'),
+('Xe ô tô điện', 'Xe ô tô chạy bằng năng lượng điện, thân thiện môi trường.'),
+('Xe máy / Xe đạp điện', 'Xe máy điện, xe đạp điện tiết kiệm năng lượng.');
+
+-- =========================
+-- SẢN PHẨM MẪU (10 sản phẩm)
+-- =========================
+
+-- 1-3: PIN
 INSERT INTO products (
-    member_id, category_id, title, description, price,
-    usage_duration, warranty_info, location,
-    brand, model, year, mileage, battery_type,
-    capacity, cycle_count, compatible_with, status
-)
-VALUES
--- Xe điện
-(1, 1, 'Xe điện VinFast Klara S cũ', 'Xe chạy ổn định, bảo dưỡng định kỳ, ngoại hình còn 90%.', 18500000,
- '8 tháng', 'Còn bảo hành 4 tháng', 'Hà Nội', 'VinFast', 'Klara S', 2023, 3200, 'Lithium-ion',
- NULL, NULL, NULL, 'APPROVED'),
+  member_id, category_id, title, description, price, location,
+  usage_duration, warranty_info, condition_status, origin, product_type,
+  battery_type, battery_voltage, battery_capacity, battery_pack_config, cycle_count, efficiency_remain,
+  repaired_or_modified, compatible_with, status
+) VALUES
+(1, 1, 'Pin Lithium-ion 60V - Dung lượng cao', 'Pin phù hợp cho xe máy điện, sạc nhanh, bền bỉ.', 4500000, 'Hà Nội',
+'6 tháng', 'Bảo hành 3 tháng', 'Tốt', 'Việt Nam', 'BATTERY',
+'Lithium-ion', '60V', '20Ah', '10S2P', 150, '90%', FALSE, 'VinFast Klara S', 'APPROVED'),
+(1, 1, 'Pin thay thế xe đạp điện 48V', 'Pin dung lượng 12Ah, tương thích nhiều dòng xe đạp điện phổ biến.', 2800000, 'TP.HCM',
+'1 năm', 'Bảo hành 6 tháng', 'Tốt', 'Trung Quốc', 'BATTERY',
+'Lithium-ion', '48V', '12Ah', '8S2P', 200, '85%', FALSE, 'Xmen, JVC', 'APPROVED'),
+(1, 1, 'Pin năng lượng cao 72V cho xe máy điện', 'Dòng pin cao cấp, hỗ trợ quãng đường xa.', 5200000, 'Đà Nẵng',
+'3 tháng', 'Không bảo hành', 'Khá', 'Việt Nam', 'BATTERY',
+'Lithium-ion', '72V', '30Ah', '12S2P', 100, '95%', FALSE, 'Yadea, VinFast', 'APPROVED');
 
-(2, 1, 'Xe máy điện Yadea ULike', 'Xe nhẹ, tiết kiệm điện, phù hợp di chuyển trong nội thành.', 13500000,
- '1 năm', 'Hết bảo hành', 'TP.HCM', 'Yadea', 'ULike', 2022, 5400, 'Lithium-ion',
- NULL, NULL, NULL, 'APPROVED'),
+-- 4-6: Ô TÔ ĐIỆN
+INSERT INTO products (
+  member_id, category_id, title, description, price, location,
+  usage_duration, warranty_info, condition_status, origin, product_type,
+  brand, model, variant, year_of_manufacture, transmission, color,
+  body_type, seat_count, mileage, license_plate, num_of_owners,
+  accessories_included, registration_valid, status
+) VALUES
+(1, 2, 'VinFast VF e34 đã qua sử dụng', 'Xe chạy ổn định, pin thuê, màu xanh.', 620000000, 'Hà Nội',
+'2 năm', 'Bảo hành 6 tháng', 'Tốt', 'Việt Nam', 'ELECTRIC_CAR',
+'VinFast', 'VF e34', 'Tiêu chuẩn', 2022, 'Tự động', 'Xanh dương', 'SUV', 5, 23000, '30G-12345', 1, TRUE, TRUE, 'APPROVED'),
+(1, 2, 'Tesla Model 3 cũ - nhập Mỹ', 'Xe nhập khẩu, pin còn tốt, nội thất sang trọng.', 890000000, 'TP.HCM',
+'3 năm', 'Không bảo hành', 'Khá', 'Mỹ', 'ELECTRIC_CAR',
+'Tesla', 'Model 3', 'Standard Range', 2021, 'Tự động', 'Trắng', 'Sedan', 5, 41000, '51H-67890', 2, TRUE, TRUE, 'APPROVED'),
+(1, 2, 'BYD Dolphin - xe điện tiết kiệm', 'Xe điện giá tốt, phù hợp đi lại trong thành phố.', 450000000, 'Cần Thơ',
+'1 năm', 'Bảo hành 1 năm', 'Rất tốt', 'Trung Quốc', 'ELECTRIC_CAR',
+'BYD', 'Dolphin', 'Base', 2023, 'Tự động', 'Bạc', 'Hatchback', 5, 8000, '65A-99999', 1, TRUE, TRUE, 'APPROVED');
 
--- Pin xe điện
-(2, 2, 'Pin Lithium 60V - 20Ah', 'Pin zin tháo xe, sạc xả dưới 300 lần, hoạt động tốt.', 3500000,
- '10 tháng', 'Không bảo hành', 'TP.HCM', NULL, NULL, NULL, NULL, NULL,
- '60V - 20Ah', 280, 'VinFast, Yadea', 'APPROVED'),
+-- 7-10: XE MÁY / XE ĐẠP ĐIỆN
+INSERT INTO products (
+  member_id, category_id, title, description, price, location,
+  usage_duration, warranty_info, condition_status, origin, product_type,
+  bike_type, motor_power, top_speed, range_per_charge, charging_time,
+  frame_type, brake_type, tire_size, has_battery_included, status
+) VALUES
+(1, 3, 'VinFast Klara S - xe máy điện cũ', 'Xe chạy ổn, pin thuê, ít trầy xước.', 21000000, 'Hà Nội',
+'1 năm', 'Không bảo hành', 'Tốt', 'Việt Nam', 'ELECTRIC_BIKE',
+'ELECTRIC_MOTORBIKE', '1500W', '70 km/h', '100 km', '5 tiếng', 'Thép', 'Phanh đĩa', '14 inch', TRUE, 'APPROVED'),
+(1, 3, 'YADEA E3 - xe máy điện giá rẻ', 'Xe phù hợp học sinh, pin lithium mới thay.', 13500000, 'TP.HCM',
+'6 tháng', 'Bảo hành 3 tháng', 'Tốt', 'Trung Quốc', 'ELECTRIC_BIKE',
+'ELECTRIC_MOTORBIKE', '1000W', '50 km/h', '80 km', '4 tiếng', 'Nhôm', 'Phanh tang trống', '12 inch', TRUE, 'APPROVED'),
+(1, 3, 'JVC Eco - xe đạp điện tiết kiệm', 'Xe đạp điện nhẹ, phù hợp đi học, pin tốt.', 7500000, 'Đà Nẵng',
+'1 năm', 'Không bảo hành', 'Khá', 'Việt Nam', 'ELECTRIC_BIKE',
+'ELECTRIC_BICYCLE', '350W', '35 km/h', '60 km', '5 tiếng', 'Thép', 'Phanh tang trống', '14 inch', TRUE, 'APPROVED'),
+(1, 3, 'Pega Aura - xe máy điện sang trọng', 'Thiết kế thời trang, yên rộng, dễ điều khiển.', 27000000, 'Huế',
+'8 tháng', 'Bảo hành 6 tháng', 'Rất tốt', 'Việt Nam', 'ELECTRIC_BIKE',
+'ELECTRIC_MOTORBIKE', '2000W', '75 km/h', '120 km', '6 tiếng', 'Nhôm', 'Phanh đĩa', '14 inch', TRUE, 'APPROVED');
 
-(3, 2, 'Pin 48V - 12Ah cho xe đạp điện', 'Pin nhẹ, dung lượng tốt, sạc nhanh.', 1500000,
- '1 năm', NULL, 'Đà Nẵng', NULL, NULL, NULL, NULL, NULL,
- '48V - 12Ah', 400, 'Xe đạp điện Asama, Nijia', 'APPROVED'),
+-- =========================
+-- HÌNH ẢNH SẢN PHẨM
+-- =========================
+INSERT INTO product_media (product_id, media_url, media_type) VALUES
+(1, 'https://i.pinimg.com/736x/cb/2f/f2/cb2ff25a0b87274fb7e69d831f32a14d.jpg', 'IMAGE'),
+(2, 'https://i.pinimg.com/736x/cb/2f/f2/cb2ff25a0b87274fb7e69d831f32a14d.jpg', 'IMAGE'),
+(3, 'https://i.pinimg.com/736x/cb/2f/f2/cb2ff25a0b87274fb7e69d831f32a14d.jpg', 'IMAGE'),
+(4, 'https://i.pinimg.com/736x/1b/a5/42/1ba54211b20831ea48fb15fec0d5fce8.jpg', 'IMAGE'),
+(5, 'https://i.pinimg.com/736x/1b/a5/42/1ba54211b20831ea48fb15fec0d5fce8.jpg', 'IMAGE'),
+(6, 'https://i.pinimg.com/736x/1b/a5/42/1ba54211b20831ea48fb15fec0d5fce8.jpg', 'IMAGE'),
+(7, 'https://i.pinimg.com/1200x/5a/fc/c3/5afcc3b74f9ae072bb2f7d45de3d7f5b.jpg', 'IMAGE'),
+(8, 'https://i.pinimg.com/1200x/5a/fc/c3/5afcc3b74f9ae072bb2f7d45de3d7f5b.jpg', 'IMAGE'),
+(9, 'https://i.pinimg.com/1200x/5a/fc/c3/5afcc3b74f9ae072bb2f7d45de3d7f5b.jpg', 'IMAGE'),
+(10, 'https://i.pinimg.com/1200x/5a/fc/c3/5afcc3b74f9ae072bb2f7d45de3d7f5b.jpg', 'IMAGE');
 
--- Phụ kiện
-(1, 3, 'Sạc xe điện đa năng', 'Tương thích nhiều dòng pin khác nhau, hiệu suất cao.', 450000,
- 'Mới 3 tháng', 'Bảo hành 6 tháng', 'Hà Nội', NULL, NULL, NULL, NULL, NULL,
- NULL, NULL, NULL, 'APPROVED'),
+-- =========================
+-- DUYỆT SẢN PHẨM (giả lập Admin đã phê duyệt)
+-- =========================
+INSERT INTO product_approvals (product_id, admin_id, action, reason)
+SELECT id, 1, 'APPROVED', 'Kiểm duyệt nội dung hợp lệ.' FROM products;
 
-(3, 3, 'Mũ bảo hiểm xe điện 3/4', 'Mũ nhẹ, bền, kính chắn gió tốt.', 350000,
- 'Mới', NULL, 'Đà Nẵng', NULL, NULL, NULL, NULL, NULL,
- NULL, NULL, NULL, 'APPROVED');
-
--- ========================
--- 6️⃣ INSERT PRODUCT MEDIA (UPDATED IMAGES)
--- ========================
-INSERT INTO product_media (product_id, media_url, media_type)
-VALUES
--- VinFast Klara S
-(1, 'https://i.pinimg.com/736x/1b/a5/42/1ba54211b20831ea48fb15fec0d5fce8.jpg', 'IMAGE'),
-(1, 'https://i.pinimg.com/736x/1b/a5/42/1ba54211b20831ea48fb15fec0d5fce8.jpg', 'IMAGE'),
-
--- Yadea ULike
-(2, 'https://i.pinimg.com/736x/1b/a5/42/1ba54211b20831ea48fb15fec0d5fce8.jpg', 'IMAGE'),
-(2, 'https://i.pinimg.com/736x/1b/a5/42/1ba54211b20831ea48fb15fec0d5fce8.jpg', 'IMAGE'),
-
--- Pin 60V
-(3, 'https://i.pinimg.com/736x/db/6a/25/db6a25cacccde9ced956526c623a637b.jpg', 'IMAGE'),
-
--- Pin 48V
-(4, 'https://i.pinimg.com/736x/db/6a/25/db6a25cacccde9ced956526c623a637b.jpg', 'IMAGE'),
-
--- Sạc xe điện
-(5, 'https://example.com/images/sac-xe-dien.jpg', 'IMAGE'),
-
--- Mũ bảo hiểm
-(6, 'https://example.com/images/mu-bao-hiem.jpg', 'IMAGE');
