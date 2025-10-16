@@ -1,79 +1,187 @@
-const bcrypt = require('bcrypt');
-const db = require('../models');
-const { User, Admin, Member } = db;
+const bcrypt = require("bcryptjs");
+const db = require("../models");
+const { User, Member, Admin } = db;
 
 /**
- * [GET] /api/users
- * → Chỉ ADMIN được phép xem tất cả user
+ * @desc Lấy danh sách tất cả người dùng
+ * @route GET /api/users
+ * @access Admin
  */
-exports.getAllUser = async (req, res) => {
+exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.findAll({
       include: [
-        { model: Member, attributes: ['address'] },
-        { model: Admin, attributes: [] },
+        { model: Member, as: "member" },
+        { model: Admin },
       ],
+      attributes: { exclude: ["password"] },
+      order: [["created_at", "DESC"]],
     });
-    res.json(users);
+
+    res.status(200).json({ success: true, data: users });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Internal server error', error });
+    console.error("Error fetching users:", error);
+    res.status(500).json({ success: false, message: "Lỗi server." });
   }
 };
 
 /**
- * [PUT] /api/users/:id/status
- * → Cập nhật trạng thái ACTIVE/INACTIVE (chỉ ADMIN)
+ * @desc Lấy thông tin chi tiết người dùng
+ * @route GET /api/users/:id
+ * @access Admin
  */
-exports.updateUserStatus = async (req, res) => {
+exports.getUserById = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
 
-    if (!['ACTIVE', 'INACTIVE'].includes(status)) {
-      return res.status(400).json({ message: 'Invalid status value' });
-    }
+    const user = await User.findByPk(id, {
+      include: [
+        { model: Member, as: "member" },
+        { model: Admin },
+      ],
+      attributes: { exclude: ["password"] },
+    });
 
-    const user = await User.findByPk(id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user)
+      return res.status(404).json({ success: false, message: "Không tìm thấy người dùng." });
 
-    user.status = status;
-    await user.save();
-
-    res.json({ message: 'User status updated successfully', user });
+    res.status(200).json({ success: true, data: user });
   } catch (error) {
-    res.status(500).json({ message: 'Internal server error', error });
+    console.error("Error fetching user:", error);
+    res.status(500).json({ success: false, message: "Lỗi server." });
   }
 };
 
 /**
- * [POST] /api/admins/create
- * → Tạo user admin mới (chỉ ADMIN)
+ * @desc Phê duyệt người dùng (kích hoạt tài khoản)
+ * @route PATCH /api/users/:id/approve
+ * @access Admin
  */
-exports.createAdminUser = async (req, res) => {
+exports.approveUser = async (req, res) => {
   try {
-    const { full_name, email, password, phone } = req.body;
+    const { id } = req.params;
 
-    const existing = await User.findOne({ where: { email } });
-    if (existing) {
-      return res.status(400).json({ message: 'Email already exists' });
+    const user = await User.findByPk(id);
+    if (!user)
+      return res.status(404).json({ success: false, message: "Không tìm thấy người dùng." });
+
+    if (user.status === "ACTIVE")
+      return res.status(400).json({ success: false, message: "Người dùng đã được kích hoạt." });
+
+    user.status = "ACTIVE";
+    await user.save();
+
+    res.status(200).json({ success: true, message: "Phê duyệt người dùng thành công.", data: user });
+  } catch (error) {
+    console.error("Error approving user:", error);
+    res.status(500).json({ success: false, message: "Lỗi server." });
+  }
+};
+
+/**
+ * @desc Khóa người dùng (vô hiệu hóa tài khoản)
+ * @route PATCH /api/users/:id/block
+ * @access Admin
+ */
+exports.blockUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findByPk(id);
+    if (!user)
+      return res.status(404).json({ success: false, message: "Không tìm thấy người dùng." });
+
+    if (user.status === "INACTIVE")
+      return res.status(400).json({ success: false, message: "Người dùng đã bị khóa trước đó." });
+
+    user.status = "INACTIVE";
+    await user.save();
+
+    res.status(200).json({ success: true, message: "Khóa người dùng thành công.", data: user });
+  } catch (error) {
+    console.error("Error blocking user:", error);
+    res.status(500).json({ success: false, message: "Lỗi server." });
+  }
+};
+
+/**
+ * @desc Xóa người dùng
+ * @route DELETE /api/users/:id
+ * @access Admin
+ */
+exports.deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findByPk(id);
+    if (!user)
+      return res.status(404).json({ success: false, message: "Không tìm thấy người dùng." });
+
+    await user.destroy();
+
+    res.status(200).json({ success: true, message: "Xóa người dùng thành công." });
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    res.status(500).json({ success: false, message: "Lỗi server." });
+  }
+};
+
+/**
+ * @desc Tạo người dùng mới với role = ADMIN
+ * @route POST /api/users/admin
+ * @access Admin
+ */
+exports.createAdmin = async (req, res) => {
+  try {
+    const { full_name, email, password, phone, avatar } = req.body;
+
+    // Kiểm tra dữ liệu đầu vào
+    if (!full_name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Vui lòng cung cấp đầy đủ họ tên, email và mật khẩu.",
+      });
     }
 
+    // Kiểm tra trùng email
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "Email này đã được sử dụng.",
+      });
+    }
+
+    // Mã hóa mật khẩu
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Tạo user (role = ADMIN)
     const newUser = await User.create({
       full_name,
       email,
       password: hashedPassword,
       phone,
-      role: 'ADMIN',
-      status: 'ACTIVE',
+      avatar,
+      role: "ADMIN",
+      status: "ACTIVE",
     });
 
+    // Tạo bản ghi trong bảng Admin
     await Admin.create({ user_id: newUser.id });
 
-    res.status(201).json({ message: 'Admin user created successfully', newUser });
+    res.status(201).json({
+      success: true,
+      message: "Tạo tài khoản quản trị viên thành công.",
+      data: {
+        id: newUser.id,
+        full_name: newUser.full_name,
+        email: newUser.email,
+        role: newUser.role,
+        status: newUser.status,
+      },
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Internal server error', error });
+    console.error("Error creating admin:", error);
+    res.status(500).json({ success: false, message: "Lỗi server." });
   }
 };
