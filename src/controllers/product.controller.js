@@ -221,3 +221,40 @@ exports.updateModerateStatus = async (req, res) => {
     res.status(500).json({ message: "Internal server error", err });
   }
 };
+
+// Lấy sản phẩm theo memberId (Member)
+exports.getProductByMemberId = async (req, res) => {
+  try {
+    const memberId = req.user.memberId; // lấy từ token (authMiddleware)
+
+    if (!memberId) {
+      return res.status(400).json({ message: "Không tìm thấy memberId trong token." });
+    }
+
+    const products = await db.Product.findAll({
+      where: { member_id: memberId },
+      include: [
+        {
+          model: db.ProductMedia,
+          as: "media",
+          attributes: ["id", "media_url", "media_type"],
+        },
+        {
+          model: db.Category,
+          as: "category",
+          attributes: ["id", "name"],
+        },
+      ],
+      order: [["created_at", "DESC"]],
+    });
+
+    return res.status(200).json({
+      message: "Lấy danh sách sản phẩm của thành viên thành công.",
+      total: products.length,
+      data: products,
+    });
+  } catch (error) {
+    console.error("getProductByMemberId error:", error);
+    return res.status(500).json({ message: "Lỗi máy chủ khi lấy sản phẩm của thành viên.", error });
+  }
+};
