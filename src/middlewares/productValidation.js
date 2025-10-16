@@ -1,59 +1,94 @@
-const validateProductCreate = (req, res, next) => {
+/**
+ * Middleware xác thực dữ liệu sản phẩm khi tạo hoặc cập nhật
+ */
+exports.validateProductCreate = (req, res, next) => {
   const {
     category_id,
     title,
-    price
+    price,
+    product_type,
+    bike_type,
+    media,
   } = req.body;
 
-  const errors = [];
-
-  // Kiểm tra các trường bắt buộc
-  if (!category_id) errors.push("category_id là bắt buộc");
-  if (!title) errors.push("title là bắt buộc");
-  if (!price) errors.push("price là bắt buộc");
-
-  // Kiểm tra kiểu dữ liệu
-  if (category_id && isNaN(category_id)) errors.push("category_id phải là số");
-  if (title && typeof title !== 'string') errors.push("title phải là chuỗi");
-  if (price && isNaN(price)) errors.push("price phải là số");
-
-  // Kiểm tra các trường số khác nếu có
-  if (req.body.year && isNaN(req.body.year)) errors.push("year phải là số");
-  if (req.body.mileage && isNaN(req.body.mileage)) errors.push("mileage phải là số");
-  if (req.body.cycle_count && isNaN(req.body.cycle_count)) errors.push("cycle_count phải là số");
-
-  if (errors.length > 0) {
+  // --------- Kiểm tra các trường bắt buộc ---------
+  if (!category_id || !title || !price || !product_type) {
     return res.status(400).json({
-      message: "Dữ liệu không hợp lệ",
-      errors: errors
+      message: "Thiếu dữ liệu bắt buộc: category_id, title, price, hoặc product_type.",
     });
+  }
+
+  // --------- Kiểm tra enum product_type ---------
+  const validTypes = ["BATTERY", "ELECTRIC_BIKE", "ELECTRIC_CAR"];
+  if (!validTypes.includes(product_type)) {
+    return res.status(400).json({
+      message: `Giá trị product_type không hợp lệ. Phải là một trong: ${validTypes.join(", ")}.`,
+    });
+  }
+
+  // --------- Kiểm tra logic theo loại sản phẩm ---------
+  if (product_type === "BATTERY") {
+    const requiredBattery = ["battery_type", "battery_voltage", "battery_capacity"];
+    const missing = requiredBattery.filter((f) => !req.body[f]);
+    if (missing.length > 0) {
+      return res.status(400).json({
+        message: `Thiếu thông tin bắt buộc cho pin: ${missing.join(", ")}.`,
+      });
+    }
+  }
+
+  if (product_type === "ELECTRIC_BIKE" && bike_type) {
+    const validBikeType = ["ELECTRIC_MOTORBIKE", "ELECTRIC_BICYCLE"];
+    if (!validBikeType.includes(bike_type)) {
+      return res.status(400).json({
+        message: `Giá trị bike_type không hợp lệ. Phải là một trong: ${validBikeType.join(", ")}.`,
+      });
+    }
+  }
+
+  // --------- Kiểm tra media (nếu có) ---------
+  if (media && !Array.isArray(media)) {
+    return res.status(400).json({ message: "Trường media phải là một mảng (array)." });
   }
 
   next();
 };
 
-const validateProductUpdate = (req, res, next) => {
-  const errors = [];
+/**
+ * Middleware xác thực khi cập nhật sản phẩm
+ */
+exports.validateProductUpdate = (req, res, next) => {
+  const { price, status, product_type, bike_type } = req.body;
 
-  // Kiểm tra kiểu dữ liệu cho các trường có thể cập nhật
-  if (req.body.category_id && isNaN(req.body.category_id)) errors.push("category_id phải là số");
-  if (req.body.price && isNaN(req.body.price)) errors.push("price phải là số");
-  if (req.body.year && isNaN(req.body.year)) errors.push("year phải là số");
-  if (req.body.mileage && isNaN(req.body.mileage)) errors.push("mileage phải là số");
-  if (req.body.cycle_count && isNaN(req.body.cycle_count)) errors.push("cycle_count phải là số");
-  if (req.body.title && typeof req.body.title !== 'string') errors.push("title phải là chuỗi");
+  // --------- Kiểm tra giá ---------
+  if (price !== undefined && (isNaN(price) || price < 0)) {
+    return res.status(400).json({ message: "Giá sản phẩm không hợp lệ." });
+  }
 
-  if (errors.length > 0) {
+  // --------- Kiểm tra status hợp lệ ---------
+  const validStatus = ["PENDING", "APPROVED", "REJECTED", "SOLD", "INACTIVE"];
+  if (status && !validStatus.includes(status)) {
     return res.status(400).json({
-      message: "Dữ liệu không hợp lệ",
-      errors: errors
+      message: `Trạng thái không hợp lệ. Phải là một trong: ${validStatus.join(", ")}.`,
     });
   }
 
-  next();
-};
+  // --------- Kiểm tra loại sản phẩm nếu có ---------
+  const validProductType = ["BATTERY", "ELECTRIC_BIKE", "ELECTRIC_CAR"];
+  if (product_type && !validProductType.includes(product_type)) {
+    return res.status(400).json({
+      message: `Loại sản phẩm không hợp lệ. Phải là: ${validProductType.join(", ")}.`,
+    });
+  }
 
-module.exports = {
-  validateProductCreate,
-  validateProductUpdate
+  if (bike_type) {
+    const validBikeType = ["ELECTRIC_MOTORBIKE", "ELECTRIC_BICYCLE"];
+    if (!validBikeType.includes(bike_type)) {
+      return res.status(400).json({
+        message: `Loại xe hai bánh không hợp lệ. Phải là: ${validBikeType.join(", ")}.`,
+      });
+    }
+  }
+
+  next();
 };
