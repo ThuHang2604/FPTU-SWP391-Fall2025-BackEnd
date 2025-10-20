@@ -16,9 +16,9 @@ CREATE TABLE users (
     email           VARCHAR(100) NOT NULL UNIQUE,
     password        VARCHAR(255) NOT NULL,
     phone           VARCHAR(20) UNIQUE,
-    avatar          VARCHAR(255),                  -- ảnh đại diện (URL)
-    role            ENUM('MEMBER', 'ADMIN') DEFAULT 'MEMBER',  -- phân quyền người dùng
-    status          ENUM('ACTIVE', 'INACTIVE') DEFAULT 'ACTIVE', -- trạng thái hoạt động
+    avatar          VARCHAR(255),
+    role            ENUM('MEMBER', 'ADMIN') DEFAULT 'MEMBER',
+    status          ENUM('ACTIVE', 'INACTIVE') DEFAULT 'ACTIVE',
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -28,10 +28,17 @@ CREATE TABLE users (
 -- ==========================================
 CREATE TABLE members (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id     BIGINT NOT NULL,
-    address     VARCHAR(255),
-    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    user_id         BIGINT NOT NULL,
+    full_name       VARCHAR(100) NOT NULL,
+    phone_number    VARCHAR(20),
+    address         VARCHAR(255),
+    city            VARCHAR(100),
+    country         VARCHAR(100) DEFAULT 'Vietnam',
+    avatar_url      VARCHAR(255),
+    wallet_balance  DECIMAL(15,2) DEFAULT 0.00,
+    status          ENUM('ACTIVE', 'SUSPENDED', 'PENDING') DEFAULT 'ACTIVE',
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -138,19 +145,23 @@ CREATE TABLE product_media (
 CREATE TABLE payments (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     member_id BIGINT NOT NULL,
-    product_id BIGINT NOT NULL,
+    product_id BIGINT,
     amount DECIMAL(15,2) NOT NULL,
     payment_method VARCHAR(50),
-    payment_status ENUM('PENDING','COMPLETED','FAILED') DEFAULT 'PENDING', -- trạng thái thanh toán
+    payment_status ENUM('PENDING','COMPLETED','FAILED') DEFAULT 'PENDING',
+    paypal_order_id VARCHAR(255), -- ID giao dịch PayPal
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
 );
 
+-- ==========================================
+-- PAYMENT_HISTORY
+-- ==========================================
 CREATE TABLE payment_history (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     payment_id BIGINT NOT NULL,
-    status ENUM('INITIATED','PROCESSING','SUCCESS','FAILED') NOT NULL, -- trạng thái từng giai đoạn
+    status ENUM('INITIATED','PROCESSING','SUCCESS','FAILED') NOT NULL,
     note TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
