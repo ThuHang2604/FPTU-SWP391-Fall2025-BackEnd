@@ -29,8 +29,6 @@ CREATE TABLE users (
 CREATE TABLE members (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id         BIGINT NOT NULL,
-    full_name       VARCHAR(100) NOT NULL,
-    phone_number    VARCHAR(20),
     address         VARCHAR(255),
     city            VARCHAR(100),
     country         VARCHAR(100) DEFAULT 'Vietnam',
