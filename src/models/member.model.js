@@ -1,3 +1,4 @@
+// src/models/member.model.js
 module.exports = (sequelize, DataTypes) => {
   const Member = sequelize.define(
     "Member",
@@ -14,14 +15,6 @@ module.exports = (sequelize, DataTypes) => {
           model: "users",
           key: "id",
         },
-      },
-      full_name: {
-        type: DataTypes.STRING(100),
-        allowNull: false,
-      },
-      phone_number: {
-        type: DataTypes.STRING(20),
-        allowNull: true,
       },
       address: {
         type: DataTypes.STRING(255),
@@ -40,7 +33,6 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING(255),
         allowNull: true,
       },
-      // ✅ Ví tiền của người dùng — phục vụ cho giao dịch & đăng tin
       wallet_balance: {
         type: DataTypes.DECIMAL(15, 2),
         allowNull: false,

@@ -1,3 +1,4 @@
+// src/controllers/auth.controller.js
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const db = require("../models");
@@ -10,9 +11,9 @@ const { User, Member, Admin } = db;
  */
 exports.register = async (req, res) => {
   try {
-    const { full_name, email, password, phone, role, address } = req.body;
+    const { full_name, email, password, phone, role, address, city, country } = req.body;
 
-    // Kiểm tra email tồn tại
+    // Kiểm tra email đã tồn tại chưa
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ message: "Email đã được sử dụng." });
@@ -31,16 +32,18 @@ exports.register = async (req, res) => {
       role: role || "MEMBER",
     });
 
-    // Nếu là MEMBER → tạo record trong members
+    // Nếu là MEMBER → tạo record trong bảng members
     let memberRecord = null;
     if (user.role === "MEMBER") {
       memberRecord = await Member.create({
         user_id: user.id,
         address: address || null,
+        city: city || null,
+        country: country || "Vietnam",
       });
     }
 
-    // Nếu là ADMIN → tạo record trong admins
+    // Nếu là ADMIN → tạo record trong bảng admins
     if (user.role === "ADMIN") {
       await Admin.create({ user_id: user.id });
     }
@@ -93,7 +96,7 @@ exports.login = async (req, res) => {
         userId: user.id,
         email: user.email,
         role: user.role,
-        memberId, // 🧩 thêm vào để dùng cho các bảng có FK = member_id
+        memberId,
       },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
@@ -124,8 +127,8 @@ exports.getUserProfile = async (req, res) => {
     const user = await User.findByPk(req.user.userId, {
       attributes: ["id", "full_name", "email", "phone", "avatar", "role", "status"],
       include: [
-        { model: Member, attributes: ["id", "address"], required: false },
-        { model: Admin, attributes: ["id"], required: false },
+        { model: Member, as: "member", attributes: ["id", "address", "city", "country", "wallet_balance"], required: false },
+        { model: Admin, as: "admin", attributes: ["id"], required: false },
       ],
     });
 
@@ -141,7 +144,7 @@ exports.getUserProfile = async (req, res) => {
       avatar: user.avatar,
       role: user.role,
       status: user.status,
-      member: user.Member || null,
+      member: user.member || null,
     });
   } catch (error) {
     console.error(error);
@@ -155,7 +158,7 @@ exports.getUserProfile = async (req, res) => {
  */
 exports.updateUserProfile = async (req, res) => {
   try {
-    const { full_name, phone, address, avatar } = req.body;
+    const { full_name, phone, avatar, address, city, country } = req.body;
 
     const user = await User.findByPk(req.user.userId);
     if (!user) {
@@ -173,6 +176,8 @@ exports.updateUserProfile = async (req, res) => {
       const member = await Member.findOne({ where: { user_id: user.id } });
       if (member) {
         member.address = address || member.address;
+        member.city = city || member.city;
+        member.country = country || member.country;
         await member.save();
       }
     }
