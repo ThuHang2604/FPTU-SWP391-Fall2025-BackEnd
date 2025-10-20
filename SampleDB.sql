@@ -27,9 +27,11 @@ VALUES
 -- =========================
 INSERT INTO admins (user_id) VALUES (1);
 
-INSERT INTO members (user_id, full_name, phone_number, address, city, country, avatar_url, wallet_balance, status)
-VALUES (2, 'User Test', '0900000002', '123 Nguyễn Trãi, Quận 1', 'TP.HCM', 'Vietnam',
-'https://i.pinimg.com/736x/08/33/b9/0833b999afd16f9266d4af47d18a8ae5.jpg', 5000000, 'ACTIVE');
+INSERT INTO members (user_id, address, city, country, avatar_url, wallet_balance, status)
+VALUES 
+(2, '123 Nguyễn Trãi, Quận 1', 'TP.HCM', 'Vietnam',
+'https://i.pinimg.com/736x/08/33/b9/0833b999afd16f9266d4af47d18a8ae5.jpg', 
+5000000, 'ACTIVE');
 
 -- =========================
 -- DANH MỤC SẢN PHẨM
