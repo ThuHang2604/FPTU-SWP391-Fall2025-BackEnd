@@ -25,6 +25,7 @@ const productMediaRoutes = require('./src/routes/productMedia.routes');
 const productApprovalRoutes = require('./src/routes/productApproval.routes');
 const chatRoutes = require('./src/routes/chat.routes');
 const reviewRoutes = require('./src/routes/review.routes');
+const notificationRoutes = require('./src/routes/notification.routes');
 
 // Mount routes
 app.use('/api/auth', authRoutes);
@@ -34,6 +35,7 @@ app.use('/api/product-media', productMediaRoutes);
 app.use('/api/product-approvals', productApprovalRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // ================= DATABASE CONNECTION =================
 const db = require('./src/models');
