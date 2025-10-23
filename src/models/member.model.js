@@ -29,10 +29,6 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         defaultValue: "Vietnam",
       },
-      avatar_url: {
-        type: DataTypes.STRING(255),
-        allowNull: true,
-      },
       wallet_balance: {
         type: DataTypes.DECIMAL(15, 2),
         allowNull: false,

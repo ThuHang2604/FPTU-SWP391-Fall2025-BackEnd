@@ -120,15 +120,34 @@ exports.login = async (req, res) => {
 
 /**
  * [GET] /api/auth/profile
- * → Lấy thông tin cá nhân của user đang đăng nhập
+ * → Lấy thông tin cá nhân của user đang đăng nhập (kèm ngày tạo tài khoản)
  */
 exports.getUserProfile = async (req, res) => {
   try {
     const user = await User.findByPk(req.user.userId, {
-      attributes: ["id", "full_name", "email", "phone", "avatar", "role", "status"],
+      attributes: [
+        "id",
+        "full_name",
+        "email",
+        "phone",
+        "avatar",
+        "role",
+        "status",
+        "created_at" // 👈 thêm trường này
+      ],
       include: [
-        { model: Member, as: "member", attributes: ["id", "address", "city", "country", "wallet_balance"], required: false },
-        { model: Admin, as: "admin", attributes: ["id"], required: false },
+        {
+          model: Member,
+          as: "member",
+          attributes: ["id", "address", "city", "country", "wallet_balance"],
+          required: false,
+        },
+        {
+          model: Admin,
+          as: "admin",
+          attributes: ["id"],
+          required: false,
+        },
       ],
     });
 
@@ -144,6 +163,7 @@ exports.getUserProfile = async (req, res) => {
       avatar: user.avatar,
       role: user.role,
       status: user.status,
+      created_at: user.created_at, // 👈 thêm ngày tạo
       member: user.member || null,
     });
   } catch (error) {

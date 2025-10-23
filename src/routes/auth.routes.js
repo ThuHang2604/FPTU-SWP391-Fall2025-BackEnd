@@ -120,7 +120,7 @@ router.post("/login", authController.login);
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Thông tin người dùng hiện tại
+ *         description: Thông tin người dùng hiện tại (kèm ngày tạo tài khoản)
  *         content:
  *           application/json:
  *             example:
@@ -131,6 +131,7 @@ router.post("/login", authController.login);
  *               avatar: "https://example.com/avatar.jpg"
  *               role: "MEMBER"
  *               status: "ACTIVE"
+ *               created_at: "2025-10-23T02:30:10.000Z"  
  *               member:
  *                 id: 3
  *                 address: "Số 12 Nguyễn Trãi"
