@@ -49,7 +49,7 @@ router.get("/admin/:adminId", authMiddleware, adminMiddleware, approvalControlle
  * @swagger
  * /api/product-approvals/product/{productId}:
  *   get:
- *     summary: Lấy danh sách approval theo product id (ADMIN)
+ *     summary: Lấy danh sách approval theo product id (ADMIN) Trả về lịch sử phê duyệt của sản phẩm
  *     tags: [ProductApprovals]
  *     security:
  *       - bearerAuth: []
