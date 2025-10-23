@@ -32,7 +32,6 @@ CREATE TABLE members (
     address         VARCHAR(255),
     city            VARCHAR(100),
     country         VARCHAR(100) DEFAULT 'Vietnam',
-    avatar_url      VARCHAR(255),
     wallet_balance  DECIMAL(15,2) DEFAULT 0.00,
     status          ENUM('ACTIVE', 'SUSPENDED', 'PENDING') DEFAULT 'ACTIVE',
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

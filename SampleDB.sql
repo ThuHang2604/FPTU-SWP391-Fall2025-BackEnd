@@ -22,16 +22,14 @@ VALUES
 'https://i.pinimg.com/736x/08/33/b9/0833b999afd16f9266d4af47d18a8ae5.jpg',
 'MEMBER', 'ACTIVE');
 
--- =========================
--- BẢNG CON
--- =========================
-INSERT INTO admins (user_id) VALUES (1);
-
-INSERT INTO members (user_id, address, city, country, avatar_url, wallet_balance, status)
+-- Thêm bản ghi vào bảng members
+INSERT INTO members (user_id, address, city, country, wallet_balance, status)
 VALUES 
-(2, '123 Nguyễn Trãi, Quận 1', 'TP.HCM', 'Vietnam',
-'https://i.pinimg.com/736x/08/33/b9/0833b999afd16f9266d4af47d18a8ae5.jpg', 
-5000000, 'ACTIVE');
+(2, '123 Nguyễn Trãi', 'Hà Nội', 'Vietnam', 500000.00, 'ACTIVE');
+
+-- Thêm bản ghi vào bảng admins
+INSERT INTO admins (user_id)
+VALUES (1);
 
 -- =========================
 -- DANH MỤC SẢN PHẨM
