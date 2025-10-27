@@ -27,6 +27,7 @@ const chatRoutes = require('./src/routes/chat.routes');
 const reviewRoutes = require('./src/routes/review.routes');
 const notificationRoutes = require('./src/routes/notification.routes');
 const userRoutes = require('./src/routes/user.routes');
+const paymentRoutes = require('./src/routes/payment.routes');
 
 // Mount routes
 app.use('/api/auth', authRoutes);
@@ -38,6 +39,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // ================= DATABASE CONNECTION =================
 const db = require('./src/models');

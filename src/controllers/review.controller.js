@@ -1,92 +1,125 @@
+const { Op } = require("sequelize");
 const db = require("../models");
+
 const Review = db.Review;
 const Product = db.Product;
-const Member = db.Member;
 const Payment = db.Payment;
-const { Op, fn, col } = require("sequelize");
+const Member = db.Member;
 
 /**
- * 🟢 [1] Tạo đánh giá sản phẩm (chỉ khi người dùng đã mua hàng)
+ * @desc   Tạo đánh giá mới (chỉ khi người dùng đã mua sản phẩm)
+ * @route  POST /api/reviews
  */
 exports.createReview = async (req, res) => {
   try {
+    const member_id = req.user.member_id || req.body.member_id;
     const { product_id, rating, comment } = req.body;
-    const member_id = req.user?.memberId || req.body.member_id;
 
-    // ✅ Kiểm tra người dùng đã mua sản phẩm chưa
+    // Kiểm tra giao dịch đã hoàn tất (đảm bảo người dùng đã mua hàng)
     const hasPurchased = await Payment.findOne({
       where: {
         member_id,
         product_id,
-        status: { [Op.eq]: "COMPLETED" },
+        payment_status: { [Op.eq]: "COMPLETED" },
       },
     });
 
     if (!hasPurchased) {
-      return res.status(403).json({ message: "Bạn chưa mua sản phẩm này hoặc giao dịch chưa hoàn tất." });
+      return res.status(400).json({
+        message: "Bạn chỉ có thể đánh giá sản phẩm sau khi đã mua thành công.",
+      });
     }
 
-    // ✅ Kiểm tra đã đánh giá trước đó chưa
-    const existing = await Review.findOne({ where: { member_id, product_id } });
-    if (existing) {
-      return res.status(400).json({ message: "Bạn đã đánh giá sản phẩm này rồi." });
-    }
+    // Tạo review mới
+    const review = await Review.create({
+      member_id,
+      product_id,
+      rating,
+      comment,
+    });
 
-    const review = await Review.create({ member_id, product_id, rating, comment });
-    res.status(201).json({ message: "Đánh giá thành công", review });
+    return res.status(201).json({
+      message: "Đánh giá đã được tạo thành công.",
+      review,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Lỗi khi tạo đánh giá", error: error.message });
+    console.error("❌ Lỗi khi tạo đánh giá:", error);
+    return res.status(500).json({ message: "Lỗi máy chủ nội bộ", error });
   }
 };
 
 /**
- * 🟡 [2] Lấy tất cả đánh giá của một sản phẩm + trung bình rating động
+ * @desc   Lấy tất cả đánh giá của 1 sản phẩm
+ * @route  GET /api/reviews/product/:productId
  */
 exports.getReviewsByProduct = async (req, res) => {
   try {
-    const { product_id } = req.params;
+    const { productId } = req.params;
 
     const reviews = await Review.findAll({
-      where: { product_id },
+      where: { product_id: productId },
       include: [
         {
           model: Member,
           as: "member",
-          attributes: ["id", "user_id"],
-          include: [{ model: db.User, as: "user", attributes: ["full_name", "avatar"] }],
+          attributes: ["id", "user_id", "status"],
+          include: [
+            {
+              model: db.User,
+              as: "user",
+              attributes: ["full_name", "avatar"],
+            },
+          ],
         },
       ],
       order: [["created_at", "DESC"]],
     });
 
-    // ✅ Tính trung bình rating ngay tại thời điểm gọi
-    const avgData = await Review.findOne({
-      where: { product_id },
-      attributes: [[fn("AVG", col("rating")), "average_rating"]],
-      raw: true,
-    });
-
-    res.json({
-      product_id,
-      average_rating: parseFloat(avgData?.average_rating || 0).toFixed(2),
-      total_reviews: reviews.length,
-      reviews,
-    });
+    return res.status(200).json(reviews);
   } catch (error) {
-    res.status(500).json({ message: "Lỗi khi lấy danh sách đánh giá", error: error.message });
+    console.error("❌ Lỗi khi lấy đánh giá theo sản phẩm:", error);
+    return res.status(500).json({ message: "Lỗi máy chủ nội bộ", error });
   }
 };
 
 /**
- * 🟣 [3] Tổng hợp tất cả đánh giá dành cho người bán (qua các sản phẩm của họ)
+ * @desc   Lấy tất cả đánh giá của người dùng (người mua)
+ * @route  GET /api/reviews/member/:memberId
+ */
+exports.getReviewsByMember = async (req, res) => {
+  try {
+    const { memberId } = req.params;
+
+    const reviews = await Review.findAll({
+      where: { member_id: memberId },
+      include: [
+        {
+          model: Product,
+          as: "product",
+          attributes: ["id", "title", "price", "product_type"],
+        },
+      ],
+      order: [["created_at", "DESC"]],
+    });
+
+    return res.status(200).json(reviews);
+  } catch (error) {
+    console.error("❌ Lỗi khi lấy đánh giá theo người dùng:", error);
+    return res.status(500).json({ message: "Lỗi máy chủ nội bộ", error });
+  }
+};
+
+/**
+ * @desc   Lấy tất cả đánh giá của người bán (dựa trên sản phẩm họ đăng)
+ * @route  GET /api/reviews/seller/:sellerId
  */
 exports.getReviewsBySeller = async (req, res) => {
   try {
-    const { seller_id } = req.params;
+    const { sellerId } = req.params;
 
     const products = await Product.findAll({
-      where: { member_id: seller_id },
-      attributes: ["id", "name"],
+      where: { member_id: sellerId },
+      attributes: ["id", "title"],
       include: [
         {
           model: Review,
@@ -95,100 +128,67 @@ exports.getReviewsBySeller = async (req, res) => {
             {
               model: Member,
               as: "member",
-              include: [{ model: db.User, as: "user", attributes: ["full_name", "avatar"] }],
+              attributes: ["id", "user_id"],
+              include: [
+                {
+                  model: db.User,
+                  as: "user",
+                  attributes: ["full_name", "avatar"],
+                },
+              ],
             },
           ],
         },
       ],
     });
 
-    // ✅ Tính trung bình toàn bộ đánh giá sản phẩm của seller
-    let totalRating = 0;
-    let count = 0;
-    products.forEach((p) => {
-      p.reviews.forEach((r) => {
-        totalRating += r.rating;
-        count++;
-      });
-    });
-
-    const averageRating = count ? (totalRating / count).toFixed(2) : null;
-
-    res.json({
-      seller_id,
-      seller_average_rating: averageRating,
-      total_reviews: count,
-      products,
-    });
+    return res.status(200).json(products);
   } catch (error) {
-    res.status(500).json({ message: "Lỗi khi lấy đánh giá người bán", error: error.message });
+    console.error("❌ Lỗi khi lấy đánh giá của người bán:", error);
+    return res.status(500).json({ message: "Lỗi máy chủ nội bộ", error });
   }
 };
 
 /**
- * 🟠 [4] Lấy tất cả đánh giá của người dùng (những gì họ đã viết)
- */
-exports.getUserReviews = async (req, res) => {
-  try {
-    const member_id = req.user?.id || req.params.member_id;
-
-    const reviews = await Review.findAll({
-      where: { member_id },
-      include: [
-        {
-          model: Product,
-          as: "product",
-          attributes: ["id", "name"],
-        },
-      ],
-      order: [["created_at", "DESC"]],
-    });
-
-    res.json(reviews);
-  } catch (error) {
-    res.status(500).json({ message: "Lỗi khi lấy danh sách đánh giá của người dùng", error: error.message });
-  }
-};
-
-/**
- * 🔵 [5] Cập nhật đánh giá
+ * @desc   Cập nhật đánh giá
+ * @route  PUT /api/reviews/:id
  */
 exports.updateReview = async (req, res) => {
   try {
     const { id } = req.params;
     const { rating, comment } = req.body;
-    const member_id = req.user?.id || req.body.member_id;
 
     const review = await Review.findByPk(id);
-    if (!review) return res.status(404).json({ message: "Không tìm thấy đánh giá" });
-
-    if (review.member_id !== member_id)
-      return res.status(403).json({ message: "Bạn không có quyền chỉnh sửa đánh giá này" });
+    if (!review) return res.status(404).json({ message: "Không tìm thấy đánh giá." });
 
     await review.update({ rating, comment });
-    res.json({ message: "Cập nhật đánh giá thành công", review });
+
+    return res.status(200).json({
+      message: "Đánh giá đã được cập nhật.",
+      review,
+    });
   } catch (error) {
-    res.status(500).json({ message: "Lỗi khi cập nhật đánh giá", error: error.message });
+    console.error("❌ Lỗi khi cập nhật đánh giá:", error);
+    return res.status(500).json({ message: "Lỗi máy chủ nội bộ", error });
   }
 };
 
 /**
- * 🔴 [6] Xóa đánh giá
+ * @desc   Xóa đánh giá
+ * @route  DELETE /api/reviews/:id
  */
 exports.deleteReview = async (req, res) => {
   try {
     const { id } = req.params;
-    const member_id = req.user?.id || req.body.member_id;
 
     const review = await Review.findByPk(id);
-    if (!review) return res.status(404).json({ message: "Không tìm thấy đánh giá" });
-
-    if (review.member_id !== member_id)
-      return res.status(403).json({ message: "Bạn không có quyền xóa đánh giá này" });
+    if (!review) return res.status(404).json({ message: "Không tìm thấy đánh giá." });
 
     await review.destroy();
-    res.json({ message: "Đã xóa đánh giá thành công" });
+
+    return res.status(200).json({ message: "Đánh giá đã được xóa thành công." });
   } catch (error) {
-    res.status(500).json({ message: "Lỗi khi xóa đánh giá", error: error.message });
+    console.error("❌ Lỗi khi xóa đánh giá:", error);
+    return res.status(500).json({ message: "Lỗi máy chủ nội bộ", error });
   }
 };
