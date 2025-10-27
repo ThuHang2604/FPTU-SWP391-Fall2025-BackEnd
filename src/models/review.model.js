@@ -5,6 +5,11 @@ module.exports = (sequelize, DataTypes) => {
     product_id: { type: DataTypes.BIGINT, allowNull: false },
     rating: { type: DataTypes.INTEGER, validate: { min: 1, max: 5 } },
     comment: { type: DataTypes.TEXT },
-  }, { tableName: "reviews", timestamps: true, createdAt: "created_at", updatedAt: false });
+  }, {
+    tableName: "reviews",
+    timestamps: true,
+    createdAt: "created_at",
+    updatedAt: false,
+  });
   return Review;
 };

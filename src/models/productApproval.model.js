@@ -5,6 +5,11 @@ module.exports = (sequelize, DataTypes) => {
     admin_id: { type: DataTypes.BIGINT, allowNull: false },
     action: { type: DataTypes.ENUM("APPROVED", "REJECTED"), allowNull: false },
     reason: { type: DataTypes.TEXT },
-  }, { tableName: "product_approvals", timestamps: true, createdAt: "created_at", updatedAt: false });
+  }, {
+    tableName: "product_approvals",
+    timestamps: true,
+    createdAt: "created_at",
+    updatedAt: false,
+  });
   return ProductApproval;
 };

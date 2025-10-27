@@ -4,6 +4,11 @@ module.exports = (sequelize, DataTypes) => {
     chatbox_id: { type: DataTypes.BIGINT, allowNull: false },
     sender_id: { type: DataTypes.BIGINT, allowNull: false },
     message: { type: DataTypes.TEXT, allowNull: false },
-  }, { tableName: "chat_messages", timestamps: true, createdAt: "created_at", updatedAt: false });
+  }, {
+    tableName: "chat_messages",
+    timestamps: true,
+    createdAt: "created_at",
+    updatedAt: false,
+  });
   return ChatMessage;
 };

@@ -23,168 +23,62 @@ db.ProductApproval = require("./productApproval.model")(sequelize, Sequelize.Dat
 // ==================== ASSOCIATIONS ====================
 
 // User ↔ Member / Admin
-db.User.hasOne(db.Member, {
-  foreignKey: "user_id",
-  as: "member",
-  onDelete: "CASCADE",
-  onUpdate: "CASCADE",
-});
-db.Member.belongsTo(db.User, {
-  foreignKey: "user_id",
-  as: "user",
-  onDelete: "CASCADE",
-  onUpdate: "CASCADE",
-});
+db.User.hasOne(db.Member, { foreignKey: "user_id", as: "member", onDelete: "CASCADE", onUpdate: "CASCADE" });
+db.Member.belongsTo(db.User, { foreignKey: "user_id", as: "user", onDelete: "CASCADE", onUpdate: "CASCADE" });
 
-db.User.hasOne(db.Admin, {
-  foreignKey: "user_id",
-  as: "admin",
-  onDelete: "CASCADE",
-});
-db.Admin.belongsTo(db.User, {
-  foreignKey: "user_id",
-  as: "user",
-});
+db.User.hasOne(db.Admin, { foreignKey: "user_id", as: "admin", onDelete: "CASCADE" });
+db.Admin.belongsTo(db.User, { foreignKey: "user_id", as: "user" });
 
 // Category ↔ Product
-db.Category.hasMany(db.Product, {
-  foreignKey: "category_id",
-  as: "products",
-  onDelete: "CASCADE",
-});
-db.Product.belongsTo(db.Category, {
-  foreignKey: "category_id",
-  as: "category",
-});
+db.Category.hasMany(db.Product, { foreignKey: "category_id", as: "products", onDelete: "CASCADE" });
+db.Product.belongsTo(db.Category, { foreignKey: "category_id", as: "category" });
 
 // Member ↔ Product
-db.Member.hasMany(db.Product, {
-  foreignKey: "member_id",
-  as: "products",
-  onDelete: "CASCADE",
-});
-db.Product.belongsTo(db.Member, {
-  foreignKey: "member_id",
-  as: "member",
-});
+db.Member.hasMany(db.Product, { foreignKey: "member_id", as: "products", onDelete: "CASCADE" });
+db.Product.belongsTo(db.Member, { foreignKey: "member_id", as: "member" });
 
 // Product ↔ ProductMedia
-db.Product.hasMany(db.ProductMedia, {
-  foreignKey: "product_id",
-  as: "media",
-  onDelete: "CASCADE",
-});
-db.ProductMedia.belongsTo(db.Product, {
-  foreignKey: "product_id",
-  as: "product",
-});
+db.Product.hasMany(db.ProductMedia, { foreignKey: "product_id", as: "media", onDelete: "CASCADE" });
+db.ProductMedia.belongsTo(db.Product, { foreignKey: "product_id", as: "product" });
 
 // Product ↔ ProductApproval ↔ Admin
-db.Product.hasMany(db.ProductApproval, {
-  foreignKey: "product_id",
-  as: "approvals",
-  onDelete: "CASCADE",
-});
-db.ProductApproval.belongsTo(db.Product, {
-  foreignKey: "product_id",
-  as: "product",
-});
-db.Admin.hasMany(db.ProductApproval, {
-  foreignKey: "admin_id",
-  as: "approvals",
-  onDelete: "CASCADE",
-});
-db.ProductApproval.belongsTo(db.Admin, {
-  foreignKey: "admin_id",
-  as: "admin",
-});
+db.Product.hasMany(db.ProductApproval, { foreignKey: "product_id", as: "approvals", onDelete: "CASCADE" });
+db.ProductApproval.belongsTo(db.Product, { foreignKey: "product_id", as: "product" });
+
+db.Admin.hasMany(db.ProductApproval, { foreignKey: "admin_id", as: "approvals", onDelete: "CASCADE" });
+db.ProductApproval.belongsTo(db.Admin, { foreignKey: "admin_id", as: "admin" });
 
 // Member ↔ Payment
-db.Member.hasMany(db.Payment, {
-  foreignKey: "member_id",
-  as: "payments",
-  onDelete: "CASCADE",
-});
-db.Payment.belongsTo(db.Member, {
-  foreignKey: "member_id",
-  as: "member",
-});
+db.Member.hasMany(db.Payment, { foreignKey: "member_id", as: "payments", onDelete: "CASCADE" });
+db.Payment.belongsTo(db.Member, { foreignKey: "member_id", as: "member" });
 
 // Payment ↔ PaymentHistory
-db.Payment.hasMany(db.PaymentHistory, {
-  foreignKey: "payment_id",
-  as: "history",
-  onDelete: "CASCADE",
-});
-db.PaymentHistory.belongsTo(db.Payment, {
-  foreignKey: "payment_id",
-  as: "payment",
-});
+db.Payment.hasMany(db.PaymentHistory, { foreignKey: "payment_id", as: "history", onDelete: "CASCADE" });
+db.PaymentHistory.belongsTo(db.Payment, { foreignKey: "payment_id", as: "payment" });
 
 // Member ↔ Review ↔ Product
-db.Member.hasMany(db.Review, {
-  foreignKey: "member_id",
-  as: "reviews",
-  onDelete: "CASCADE",
-});
-db.Review.belongsTo(db.Member, {
-  foreignKey: "member_id",
-  as: "member",
-});
-db.Product.hasMany(db.Review, {
-  foreignKey: "product_id",
-  as: "reviews",
-  onDelete: "CASCADE",
-});
-db.Review.belongsTo(db.Product, {
-  foreignKey: "product_id",
-  as: "product",
-});
+db.Member.hasMany(db.Review, { foreignKey: "member_id", as: "reviews", onDelete: "CASCADE" });
+db.Review.belongsTo(db.Member, { foreignKey: "member_id", as: "member" });
+
+db.Product.hasMany(db.Review, { foreignKey: "product_id", as: "reviews", onDelete: "CASCADE" });
+db.Review.belongsTo(db.Product, { foreignKey: "product_id", as: "product" });
 
 // ==================== CHAT MODULE ====================
 
 // Member ↔ Chatbox
-db.Member.hasMany(db.Chatbox, {
-  foreignKey: "host_id",
-  as: "chatboxes",
-  onDelete: "CASCADE",
-});
-db.Chatbox.belongsTo(db.Member, {
-  foreignKey: "host_id",
-  as: "host",
-});
+db.Member.hasMany(db.Chatbox, { foreignKey: "host_id", as: "chatboxes", onDelete: "CASCADE" });
+db.Chatbox.belongsTo(db.Member, { foreignKey: "host_id", as: "host" });
 
 // Chatbox ↔ ChatMessage
-db.Chatbox.hasMany(db.ChatMessage, {
-  foreignKey: "chatbox_id",
-  as: "messages",
-  onDelete: "CASCADE",
-});
-db.ChatMessage.belongsTo(db.Chatbox, {
-  foreignKey: "chatbox_id",
-  as: "chatbox",
-});
+db.Chatbox.hasMany(db.ChatMessage, { foreignKey: "chatbox_id", as: "messages", onDelete: "CASCADE" });
+db.ChatMessage.belongsTo(db.Chatbox, { foreignKey: "chatbox_id", as: "chatbox" });
 
 // Member ↔ ChatMessage (sender)
-db.Member.hasMany(db.ChatMessage, {
-  foreignKey: "sender_id",
-  as: "sentMessages",
-  onDelete: "CASCADE",
-});
-db.ChatMessage.belongsTo(db.Member, {
-  foreignKey: "sender_id",
-  as: "sender",
-});
+db.Member.hasMany(db.ChatMessage, { foreignKey: "sender_id", as: "sentMessages", onDelete: "CASCADE" });
+db.ChatMessage.belongsTo(db.Member, { foreignKey: "sender_id", as: "sender" });
 
 // ==================== NOTIFICATION ====================
-db.Member.hasMany(db.Notification, {
-  foreignKey: "member_id",
-  as: "notifications",
-  onDelete: "CASCADE",
-});
-db.Notification.belongsTo(db.Member, {
-  foreignKey: "member_id",
-  as: "member",
-});
+db.Member.hasMany(db.Notification, { foreignKey: "member_id", as: "notifications", onDelete: "CASCADE" });
+db.Notification.belongsTo(db.Member, { foreignKey: "member_id", as: "member" });
 
 module.exports = db;

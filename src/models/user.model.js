@@ -8,6 +8,12 @@ module.exports = (sequelize, DataTypes) => {
     avatar: { type: DataTypes.STRING(255) },
     role: { type: DataTypes.ENUM("MEMBER", "ADMIN"), defaultValue: "MEMBER" },
     status: { type: DataTypes.ENUM("ACTIVE", "INACTIVE"), defaultValue: "ACTIVE" },
-  }, { tableName: "users", timestamps: true, createdAt: "created_at", updatedAt: "updated_at" });
+  }, {
+    tableName: "users",
+    timestamps: true,
+    createdAt: "created_at",
+    updatedAt: "updated_at",
+  });
+
   return User;
 };

@@ -4,6 +4,11 @@ module.exports = (sequelize, DataTypes) => {
     member_id: { type: DataTypes.BIGINT, allowNull: false },
     message: { type: DataTypes.TEXT, allowNull: false },
     is_read: { type: DataTypes.BOOLEAN, defaultValue: false },
-  }, { tableName: "notifications", timestamps: true, createdAt: "created_at", updatedAt: false });
+  }, {
+    tableName: "notifications",
+    timestamps: true,
+    createdAt: "created_at",
+    updatedAt: false,
+  });
   return Notification;
 };

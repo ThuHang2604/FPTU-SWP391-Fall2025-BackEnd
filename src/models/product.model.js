@@ -13,7 +13,6 @@ module.exports = (sequelize, DataTypes) => {
     origin: { type: DataTypes.STRING(255) },
     product_type: { type: DataTypes.ENUM("BATTERY", "ELECTRIC_BIKE", "ELECTRIC_CAR"), allowNull: false },
 
-    // battery info
     battery_type: { type: DataTypes.STRING(100) },
     battery_voltage: { type: DataTypes.STRING(50) },
     battery_capacity: { type: DataTypes.STRING(50) },
@@ -23,7 +22,6 @@ module.exports = (sequelize, DataTypes) => {
     repaired_or_modified: { type: DataTypes.BOOLEAN, defaultValue: false },
     compatible_with: { type: DataTypes.STRING(255) },
 
-    // car info
     brand: { type: DataTypes.STRING(100) },
     model: { type: DataTypes.STRING(100) },
     variant: { type: DataTypes.STRING(100) },
@@ -38,7 +36,6 @@ module.exports = (sequelize, DataTypes) => {
     accessories_included: { type: DataTypes.BOOLEAN, defaultValue: false },
     registration_valid: { type: DataTypes.BOOLEAN, defaultValue: false },
 
-    // motorbike/bicycle info
     bike_type: { type: DataTypes.ENUM("ELECTRIC_MOTORBIKE", "ELECTRIC_BICYCLE") },
     motor_power: { type: DataTypes.STRING(50) },
     top_speed: { type: DataTypes.STRING(50) },
@@ -50,6 +47,11 @@ module.exports = (sequelize, DataTypes) => {
     has_battery_included: { type: DataTypes.BOOLEAN, defaultValue: true },
 
     status: { type: DataTypes.ENUM("PENDING", "APPROVED", "REJECTED", "SOLD", "INACTIVE"), defaultValue: "PENDING" },
-  }, { tableName: "products", timestamps: true, createdAt: "created_at", updatedAt: "updated_at" });
+  }, {
+    tableName: "products",
+    timestamps: true,
+    createdAt: "created_at",
+    updatedAt: "updated_at",
+  });
   return Product;
 };
