@@ -1,5 +1,5 @@
 const db = require("../models");
-const { Product, ProductMedia, Member, ProductApproval } = db;
+const { Product, ProductMedia, Member, ProductApproval, Admin } = db;
 const { Op } = db.Sequelize;
 
 // Lấy tất cả sản phẩm
