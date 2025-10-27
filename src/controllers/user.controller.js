@@ -1,4 +1,4 @@
-const bcrypt = require("bcryptjs");
+const bcrypt = require("bcrypt");
 const db = require("../models");
 const { User, Member, Admin } = db;
 
@@ -12,7 +12,7 @@ exports.getAllUsers = async (req, res) => {
     const users = await User.findAll({
       include: [
         { model: Member, as: "member" },
-        { model: Admin },
+        { model: Admin, as: "admin" },
       ],
       attributes: { exclude: ["password"] },
       order: [["created_at", "DESC"]],
@@ -37,7 +37,7 @@ exports.getUserById = async (req, res) => {
     const user = await User.findByPk(id, {
       include: [
         { model: Member, as: "member" },
-        { model: Admin },
+        { model: Admin, as: "admin" },
       ],
       attributes: { exclude: ["password"] },
     });
