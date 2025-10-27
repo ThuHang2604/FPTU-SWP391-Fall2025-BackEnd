@@ -11,7 +11,7 @@ const { Op, fn, col } = require("sequelize");
 exports.createReview = async (req, res) => {
   try {
     const { product_id, rating, comment } = req.body;
-    const member_id = req.user?.id || req.body.member_id;
+    const member_id = req.user?.memberId || req.body.member_id;
 
     // ✅ Kiểm tra người dùng đã mua sản phẩm chưa
     const hasPurchased = await Payment.findOne({

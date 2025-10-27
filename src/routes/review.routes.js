@@ -1,3 +1,9 @@
+// src/routes/review.routes.js
+const express = require("express");
+const router = express.Router();
+const reviewController = require("../controllers/review.controller");
+const authMiddleware = require("../middlewares/authMiddleware");
+
 /**
  * @swagger
  * tags:
@@ -20,33 +26,29 @@
  *           example: 5
  *         product_id:
  *           type: integer
- *           example: 12
+ *           example: 3
  *         rating:
  *           type: integer
- *           minimum: 1
- *           maximum: 5
- *           example: 4
+ *           example: 5
  *         comment:
  *           type: string
- *           example: "Sản phẩm rất tốt, giao nhanh!"
- *         created_at:
+ *           example: "Sản phẩm tuyệt vời, pin bền!"
+ *         createdAt:
  *           type: string
  *           format: date-time
- *           example: "2025-10-21T10:15:00Z"
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
  */
-
-const express = require("express");
-const router = express.Router();
-const reviewController = require("../controllers/review.controller");
-
-// ========================== ROUTES ==========================
 
 /**
  * @swagger
- * /reviews:
+ * /api/reviews:
  *   post:
- *     summary: Người dùng đánh giá sản phẩm đã mua
+ *     summary: Thành viên tạo đánh giá sản phẩm đã mua
  *     tags: [Reviews]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -59,148 +61,98 @@ const reviewController = require("../controllers/review.controller");
  *             properties:
  *               product_id:
  *                 type: integer
- *                 example: 12
+ *                 example: 1
  *               rating:
  *                 type: integer
- *                 minimum: 1
- *                 maximum: 5
  *                 example: 5
  *               comment:
  *                 type: string
  *                 example: "Sản phẩm tuyệt vời, pin bền!"
  *     responses:
  *       201:
- *         description: Đánh giá thành công
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Review'
+ *         description: Tạo đánh giá thành công
+ *       400:
+ *         description: Người dùng đã đánh giá sản phẩm này
  *       403:
- *         description: Người dùng chưa mua sản phẩm này
+ *         description: Người dùng chưa mua sản phẩm hoặc giao dịch chưa hoàn tất
  */
-router.post("/", reviewController.createReview);
+router.post("/", authMiddleware, reviewController.createReview);
 
 /**
  * @swagger
- * /reviews/product/{product_id}:
+ * /api/reviews/product/{product_id}:
  *   get:
- *     summary: Lấy tất cả đánh giá của một sản phẩm
+ *     summary: Lấy tất cả đánh giá của 1 sản phẩm + trung bình đánh giá
  *     tags: [Reviews]
  *     parameters:
- *       - name: product_id
- *         in: path
+ *       - in: path
+ *         name: product_id
  *         required: true
- *         description: ID sản phẩm cần xem đánh giá
  *         schema:
  *           type: integer
+ *         description: ID của sản phẩm
  *     responses:
  *       200:
- *         description: Danh sách đánh giá và điểm trung bình
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 product_id:
- *                   type: integer
- *                   example: 12
- *                 average_rating:
- *                   type: number
- *                   example: 4.3
- *                 total_reviews:
- *                   type: integer
- *                   example: 8
- *                 reviews:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Review'
+ *         description: Danh sách đánh giá của sản phẩm
+ *       500:
+ *         description: Lỗi máy chủ
  */
 router.get("/product/:product_id", reviewController.getReviewsByProduct);
 
 /**
  * @swagger
- * /reviews/seller/{seller_id}:
+ * /api/reviews/seller/{seller_id}:
  *   get:
- *     summary: Tổng hợp đánh giá của người bán (qua sản phẩm họ đã bán)
+ *     summary: Lấy tất cả đánh giá của người bán dựa trên các sản phẩm họ đã bán
  *     tags: [Reviews]
  *     parameters:
- *       - name: seller_id
- *         in: path
+ *       - in: path
+ *         name: seller_id
  *         required: true
- *         description: ID của người bán
  *         schema:
  *           type: integer
+ *         description: ID của người bán
  *     responses:
  *       200:
- *         description: Danh sách sản phẩm kèm đánh giá và điểm trung bình của người bán
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 seller_id:
- *                   type: integer
- *                   example: 3
- *                 seller_average_rating:
- *                   type: number
- *                   example: 4.5
- *                 total_reviews:
- *                   type: integer
- *                   example: 12
- *                 products:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: integer
- *                         example: 10
- *                       name:
- *                         type: string
- *                         example: "VinFast VF5"
- *                       reviews:
- *                         type: array
- *                         items:
- *                           $ref: '#/components/schemas/Review'
+ *         description: Danh sách đánh giá cho người bán
+ *       500:
+ *         description: Lỗi máy chủ
  */
 router.get("/seller/:seller_id", reviewController.getReviewsBySeller);
 
 /**
  * @swagger
- * /reviews/user/{member_id}:
+ * /api/reviews/user/{member_id}:
  *   get:
- *     summary: Lấy danh sách đánh giá mà người dùng đã viết
+ *     summary: Lấy tất cả đánh giá mà người dùng đã viết
  *     tags: [Reviews]
  *     parameters:
- *       - name: member_id
- *         in: path
+ *       - in: path
+ *         name: member_id
  *         required: true
- *         description: ID của người dùng (member)
  *         schema:
  *           type: integer
+ *         description: ID của thành viên
  *     responses:
  *       200:
  *         description: Danh sách đánh giá của người dùng
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Review'
+ *       500:
+ *         description: Lỗi máy chủ
  */
 router.get("/user/:member_id", reviewController.getUserReviews);
 
 /**
  * @swagger
- * /reviews/{id}:
+ * /api/reviews/{id}:
  *   put:
- *     summary: Chỉnh sửa đánh giá
+ *     summary: Thành viên chỉnh sửa đánh giá của mình
  *     tags: [Reviews]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
- *       - name: id
- *         in: path
+ *       - in: path
+ *         name: id
  *         required: true
- *         description: ID của đánh giá cần chỉnh sửa
  *         schema:
  *           type: integer
  *     requestBody:
@@ -215,34 +167,39 @@ router.get("/user/:member_id", reviewController.getUserReviews);
  *                 example: 4
  *               comment:
  *                 type: string
- *                 example: "Sau vài ngày sử dụng thấy ổn định hơn!"
+ *                 example: "Sau 1 tuần dùng vẫn rất ổn!"
  *     responses:
  *       200:
- *         description: Cập nhật thành công
+ *         description: Cập nhật đánh giá thành công
  *       403:
- *         description: Không có quyền chỉnh sửa
+ *         description: Không có quyền sửa đánh giá này
+ *       404:
+ *         description: Không tìm thấy đánh giá
  */
-router.put("/:id", reviewController.updateReview);
+router.put("/:id", authMiddleware, reviewController.updateReview);
 
 /**
  * @swagger
- * /reviews/{id}:
+ * /api/reviews/{id}:
  *   delete:
- *     summary: Xóa đánh giá của người dùng
+ *     summary: Thành viên xóa đánh giá của mình
  *     tags: [Reviews]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
- *       - name: id
- *         in: path
+ *       - in: path
+ *         name: id
  *         required: true
- *         description: ID của đánh giá cần xóa
  *         schema:
  *           type: integer
  *     responses:
  *       200:
- *         description: Xóa thành công
+ *         description: Xóa đánh giá thành công
  *       403:
- *         description: Không có quyền xóa
+ *         description: Không có quyền xóa đánh giá này
+ *       404:
+ *         description: Không tìm thấy đánh giá
  */
-router.delete("/:id", reviewController.deleteReview);
+router.delete("/:id", authMiddleware, reviewController.deleteReview);
 
 module.exports = router;
