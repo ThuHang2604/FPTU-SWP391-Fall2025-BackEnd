@@ -200,25 +200,45 @@ exports.updateModerateStatus = async (req, res) => {
     const { id } = req.params;
     const { status, reason } = req.body;
 
-    if (!["APPROVED", "REJECTED"].includes(status))
+    // Kiểm tra trạng thái hợp lệ
+    if (!["APPROVED", "REJECTED"].includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
+    }
 
+    // Kiểm tra sản phẩm tồn tại
     const product = await Product.findByPk(id);
-    if (!product) return res.status(404).json({ message: "Product not found" });
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
 
+    // 🔹 Lấy admin theo user_id trong token
+    const admin = await Admin.findOne({ where: { user_id: req.user.userId } });
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found for this user" });
+    }
+
+    // 🔹 Cập nhật trạng thái sản phẩm
     product.status = status;
     await product.save();
 
+    // 🔹 Ghi log vào bảng product_approvals
     await ProductApproval.create({
-      product_id: id,
-      admin_id: req.user.userId, // userId = admins.user_id
+      product_id: product.id,
+      admin_id: admin.id, // Dùng admin.id trong bảng admins
       action: status,
       reason,
     });
 
-    res.json(product);
+    res.json({
+      message: "Product moderation updated successfully",
+      product,
+    });
   } catch (err) {
-    res.status(500).json({ message: "Internal server error", err });
+    console.error("updateModerateStatus error:", err);
+    res.status(500).json({
+      message: "Internal server error",
+      error: err.message,
+    });
   }
 };
 
