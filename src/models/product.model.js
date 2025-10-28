@@ -2,6 +2,7 @@ module.exports = (sequelize, DataTypes) => {
   const Product = sequelize.define("Product", {
     id: { type: DataTypes.BIGINT, autoIncrement: true, primaryKey: true },
     member_id: { type: DataTypes.BIGINT, allowNull: false },
+    buyer_id: { type: DataTypes.BIGINT, allowNull: true },
     category_id: { type: DataTypes.BIGINT, allowNull: false },
     title: { type: DataTypes.STRING(200), allowNull: false },
     description: { type: DataTypes.TEXT },

@@ -252,5 +252,30 @@ router.post("/admin", authMiddleware, adminMiddleware, userController.createAdmi
  */
 router.delete("/:id", authMiddleware, adminMiddleware, userController.deleteUser);
 
+/**
+ * @swagger
+ * /api/users/search-buyer:
+ *   get:
+ *     summary: Tìm kiếm người mua theo email hoặc số điện thoại
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: query
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Email hoặc số điện thoại của người mua
+ *     responses:
+ *       200:
+ *         description: Thông tin người mua (bao gồm buyer_id)
+ *       404:
+ *         description: Không tìm thấy người mua
+ *       400:
+ *         description: Thiếu tham số query
+ */
+router.get("/search-buyer", authMiddleware, userController.searchBuyer);
+
 module.exports = router;
 

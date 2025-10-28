@@ -1,4 +1,3 @@
-// src/routes/review.routes.js
 const express = require("express");
 const router = express.Router();
 const reviewController = require("../controllers/review.controller");
@@ -42,10 +41,30 @@ const authMiddleware = require("../middlewares/authMiddleware");
  * @swagger
  * /api/reviews:
  *   post:
- *     summary: Thành viên tạo đánh giá sản phẩm đã mua
+ *     summary: Thành viên tạo đánh giá cho sản phẩm mà họ đã mua
+ *     description: Chỉ người có buyer_id trùng với member_id mới được đánh giá.
  *     tags: [Reviews]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - product_id
+ *               - rating
+ *             properties:
+ *               product_id:
+ *                 type: integer
+ *                 example: 10
+ *               rating:
+ *                 type: integer
+ *                 example: 5
+ *               comment:
+ *                 type: string
+ *                 example: "Xe rất tốt, pin ổn định!"
  */
 router.post("/", authMiddleware, reviewController.createReview);
 
@@ -53,7 +72,7 @@ router.post("/", authMiddleware, reviewController.createReview);
  * @swagger
  * /api/reviews/product/{productId}:
  *   get:
- *     summary: Lấy tất cả đánh giá của 1 sản phẩm
+ *     summary: Lấy tất cả đánh giá của một sản phẩm + điểm trung bình
  *     tags: [Reviews]
  */
 router.get("/product/:productId", reviewController.getReviewsByProduct);
@@ -62,7 +81,7 @@ router.get("/product/:productId", reviewController.getReviewsByProduct);
  * @swagger
  * /api/reviews/seller/{sellerId}:
  *   get:
- *     summary: Lấy tất cả đánh giá của người bán
+ *     summary: Lấy tất cả đánh giá dành cho người bán dựa trên sản phẩm họ đã bán
  *     tags: [Reviews]
  */
 router.get("/seller/:sellerId", reviewController.getReviewsBySeller);
@@ -80,7 +99,7 @@ router.get("/user/:memberId", reviewController.getReviewsByMember);
  * @swagger
  * /api/reviews/{id}:
  *   put:
- *     summary: Thành viên chỉnh sửa đánh giá của mình
+ *     summary: Thành viên chỉnh sửa đánh giá của chính họ
  *     tags: [Reviews]
  *     security:
  *       - bearerAuth: []
@@ -91,7 +110,7 @@ router.put("/:id", authMiddleware, reviewController.updateReview);
  * @swagger
  * /api/reviews/{id}:
  *   delete:
- *     summary: Thành viên xóa đánh giá của mình
+ *     summary: Thành viên xóa đánh giá của chính họ
  *     tags: [Reviews]
  *     security:
  *       - bearerAuth: []

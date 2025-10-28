@@ -43,7 +43,9 @@ exports.getUserById = async (req, res) => {
     });
 
     if (!user)
-      return res.status(404).json({ success: false, message: "Không tìm thấy người dùng." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy người dùng." });
 
     res.status(200).json({ success: true, data: user });
   } catch (error) {
@@ -63,15 +65,25 @@ exports.approveUser = async (req, res) => {
 
     const user = await User.findByPk(id);
     if (!user)
-      return res.status(404).json({ success: false, message: "Không tìm thấy người dùng." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy người dùng." });
 
     if (user.status === "ACTIVE")
-      return res.status(400).json({ success: false, message: "Người dùng đã được kích hoạt." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Người dùng đã được kích hoạt." });
 
     user.status = "ACTIVE";
     await user.save();
 
-    res.status(200).json({ success: true, message: "Phê duyệt người dùng thành công.", data: user });
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Phê duyệt người dùng thành công.",
+        data: user,
+      });
   } catch (error) {
     console.error("Error approving user:", error);
     res.status(500).json({ success: false, message: "Lỗi server." });
@@ -89,15 +101,25 @@ exports.blockUser = async (req, res) => {
 
     const user = await User.findByPk(id);
     if (!user)
-      return res.status(404).json({ success: false, message: "Không tìm thấy người dùng." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy người dùng." });
 
     if (user.status === "INACTIVE")
-      return res.status(400).json({ success: false, message: "Người dùng đã bị khóa trước đó." });
+      return res
+        .status(400)
+        .json({ success: false, message: "Người dùng đã bị khóa trước đó." });
 
     user.status = "INACTIVE";
     await user.save();
 
-    res.status(200).json({ success: true, message: "Khóa người dùng thành công.", data: user });
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Khóa người dùng thành công.",
+        data: user,
+      });
   } catch (error) {
     console.error("Error blocking user:", error);
     res.status(500).json({ success: false, message: "Lỗi server." });
@@ -115,11 +137,15 @@ exports.deleteUser = async (req, res) => {
 
     const user = await User.findByPk(id);
     if (!user)
-      return res.status(404).json({ success: false, message: "Không tìm thấy người dùng." });
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy người dùng." });
 
     await user.destroy();
 
-    res.status(200).json({ success: true, message: "Xóa người dùng thành công." });
+    res
+      .status(200)
+      .json({ success: true, message: "Xóa người dùng thành công." });
   } catch (error) {
     console.error("Error deleting user:", error);
     res.status(500).json({ success: false, message: "Lỗi server." });
@@ -183,5 +209,64 @@ exports.createAdmin = async (req, res) => {
   } catch (error) {
     console.error("Error creating admin:", error);
     res.status(500).json({ success: false, message: "Lỗi server." });
+  }
+};
+
+/**
+ * @desc Tìm kiếm người mua theo email hoặc số điện thoại
+ * @route GET /api/users/search-buyer?query=
+ * @access Member (người bán)
+ */
+exports.searchBuyer = async (req, res) => {
+  try {
+    const { query } = req.query;
+
+    if (!query || query.trim() === "") {
+      return res.status(400).json({
+        success: false,
+        message: "Vui lòng nhập email hoặc số điện thoại để tìm kiếm.",
+      });
+    }
+
+    // Tìm theo email hoặc phone
+    const buyer = await User.findOne({
+      where: {
+        [db.Sequelize.Op.or]: [{ email: query }, { phone: query }],
+      },
+      include: [
+        {
+          model: Member,
+          as: "member",
+          attributes: ["id", "wallet_balance", "status", "created_at"],
+        },
+      ],
+      attributes: ["id", "full_name", "email", "phone", "status", "role"],
+    });
+
+    if (!buyer || !buyer.member) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy người mua phù hợp.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Tìm thấy người mua.",
+      data: {
+        buyer_id: buyer.member.id,
+        full_name: buyer.full_name,
+        email: buyer.email,
+        phone: buyer.phone,
+        status: buyer.status,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error searching buyer:", error);
+    res.status(500).json({
+      success: false,
+      message: "Lỗi server khi tìm kiếm người mua.",
+      error: error.message,
+    });
   }
 };

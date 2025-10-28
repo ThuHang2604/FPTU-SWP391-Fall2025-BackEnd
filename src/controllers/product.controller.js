@@ -173,24 +173,66 @@ exports.updateProductInfo = async (req, res) => {
   }
 };
 
-// Cập nhật trạng thái bán (Member)
+// Cập nhật trạng thái sản phẩm (Member)
 exports.updateProductStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, buyer_id } = req.body; // 👈 Cho phép truyền buyer_id nếu status = SOLD
+    const memberId = req.user.member_id;
 
-    if (!["SOLD", "INACTIVE"].includes(status))
-      return res.status(400).json({ message: "Invalid status" });
+    // ✅ Kiểm tra trạng thái hợp lệ
+    if (!["SOLD", "INACTIVE"].includes(status)) {
+      return res.status(400).json({ message: "Trạng thái không hợp lệ." });
+    }
 
+    // ✅ Tìm sản phẩm
     const product = await Product.findByPk(id);
-    if (!product || product.member_id !== req.user.memberId)
-      return res.status(403).json({ message: "Not authorized" });
+    if (!product) {
+      return res.status(404).json({ message: "Không tìm thấy sản phẩm." });
+    }
 
-    product.status = status;
-    await product.save();
-    res.json(product);
+    // ✅ Kiểm tra quyền sở hữu
+    if (product.member_id !== memberId) {
+      return res.status(403).json({ message: "Bạn không có quyền cập nhật sản phẩm này." });
+    }
+
+    // ✅ Nếu là chuyển sang SOLD → yêu cầu có buyer_id
+    if (status === "SOLD") {
+      if (!buyer_id) {
+        return res.status(400).json({ message: "Vui lòng cung cấp buyer_id khi đánh dấu sản phẩm là ĐÃ BÁN." });
+      }
+
+      // Kiểm tra buyer tồn tại
+      const buyer = await db.Member.findByPk(buyer_id);
+      if (!buyer) {
+        return res.status(404).json({ message: "Không tìm thấy người mua (buyer_id không hợp lệ)." });
+      }
+
+      // Không cho seller tự chọn chính mình làm buyer
+      if (buyer.id === memberId) {
+        return res.status(400).json({ message: "Người bán không thể là người mua sản phẩm của chính mình." });
+      }
+
+      // Cập nhật trạng thái và buyer_id
+      await product.update({
+        status: "SOLD",
+        buyer_id,
+      });
+    } else {
+      // ✅ Nếu là INACTIVE → chỉ cập nhật status
+      await product.update({ status, buyer_id: null });
+    }
+
+    return res.status(200).json({
+      message: "Cập nhật trạng thái sản phẩm thành công.",
+      product,
+    });
   } catch (err) {
-    res.status(500).json({ message: "Internal server error", err });
+    console.error("❌ Lỗi updateProductStatus:", err);
+    return res.status(500).json({
+      message: "Lỗi máy chủ.",
+      error: err.message,
+    });
   }
 };
 
