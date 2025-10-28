@@ -13,23 +13,32 @@ VALUES
 'https://i.pinimg.com/736x/b9/e0/e3/b9e0e30ac1ec95077b7e1d0abd250e5d.jpg',
 'ADMIN', 'ACTIVE');
 
--- 2. Member
+-- 2. Người bán (Seller)
 INSERT INTO users (full_name, email, password, phone, avatar, role, status)
 VALUES 
-('User Test', 'user@example.com', 
+('User Seller', 'seller@example.com', 
 '$2b$10$OsESrJbKm4ra8F50yw8S2eezgP3ZqFJUy8Zmhuqe3VEYYkZ2jKi7S',
 '0900000002',
 'https://i.pinimg.com/736x/08/33/b9/0833b999afd16f9266d4af47d18a8ae5.jpg',
 'MEMBER', 'ACTIVE');
 
--- Thêm bản ghi vào bảng members
+-- 3. Người mua (Buyer)
+INSERT INTO users (full_name, email, password, phone, avatar, role, status)
+VALUES 
+('Buyer Demo', 'buyer@example.com', 
+'$2b$10$OsESrJbKm4ra8F50yw8S2eezgP3ZqFJUy8Zmhuqe3VEYYkZ2jKi7S',
+'0900000003',
+'https://i.pinimg.com/736x/ee/fb/72/eefb72b70b64a3de7e0cb1a9e73f7b7a.jpg',
+'MEMBER', 'ACTIVE');
+
+-- MEMBERS
 INSERT INTO members (user_id, address, city, country, wallet_balance, status)
 VALUES 
-(2, '123 Nguyễn Trãi', 'Hà Nội', 'Vietnam', 500000.00, 'ACTIVE');
+(2, '123 Nguyễn Trãi', 'Hà Nội', 'Vietnam', 500000.00, 'ACTIVE'),
+(3, '456 Lê Lợi', 'TP.HCM', 'Vietnam', 200000.00, 'ACTIVE');
 
--- Thêm bản ghi vào bảng admins
-INSERT INTO admins (user_id)
-VALUES (1);
+-- ADMIN
+INSERT INTO admins (user_id) VALUES (1);
 
 -- =========================
 -- DANH MỤC SẢN PHẨM
@@ -88,36 +97,68 @@ INSERT INTO products (
   bike_type, motor_power, top_speed, range_per_charge, charging_time,
   frame_type, brake_type, tire_size, has_battery_included, status
 ) VALUES
-(1, 3, 'VinFast Klara S - xe máy điện cũ', 'Xe chạy ổn, pin thuê, ít trầy xước.', 21000000, 'Hà Nội',
+(1, 3, 'VinFast Klara S - xe máy điện cũ (ĐÃ BÁN)', 
+'Xe chạy ổn, pin thuê, người bán và người mua giao dịch ngoài đời sau khi chat trên web.', 
+21000000, 'Hà Nội',
 '1 năm', 'Không bảo hành', 'Tốt', 'Việt Nam', 'ELECTRIC_BIKE',
-'ELECTRIC_MOTORBIKE', '1500W', '70 km/h', '100 km', '5 tiếng', 'Thép', 'Phanh đĩa', '14 inch', TRUE, 'APPROVED'),
+'ELECTRIC_MOTORBIKE', '1500W', '70 km/h', '100 km', '5 tiếng', 
+'Thép', 'Phanh đĩa', '14 inch', TRUE, 'SOLD'),
 (1, 3, 'YADEA E3 - xe máy điện giá rẻ', 'Xe phù hợp học sinh, pin lithium mới thay.', 13500000, 'TP.HCM',
 '6 tháng', 'Bảo hành 3 tháng', 'Tốt', 'Trung Quốc', 'ELECTRIC_BIKE',
-'ELECTRIC_MOTORBIKE', '1000W', '50 km/h', '80 km', '4 tiếng', 'Nhôm', 'Phanh tang trống', '12 inch', TRUE, 'APPROVED'),
+'ELECTRIC_MOTORBIKE', '1000W', '50 km/h', '80 km', '4 tiếng', 
+'Nhôm', 'Phanh tang trống', '12 inch', TRUE, 'APPROVED'),
 (1, 3, 'JVC Eco - xe đạp điện tiết kiệm', 'Xe đạp điện nhẹ, phù hợp đi học.', 7500000, 'Đà Nẵng',
 '1 năm', 'Không bảo hành', 'Khá', 'Việt Nam', 'ELECTRIC_BIKE',
-'ELECTRIC_BICYCLE', '350W', '35 km/h', '60 km', '5 tiếng', 'Thép', 'Phanh tang trống', '14 inch', TRUE, 'APPROVED'),
+'ELECTRIC_BICYCLE', '350W', '35 km/h', '60 km', '5 tiếng', 
+'Thép', 'Phanh tang trống', '14 inch', TRUE, 'APPROVED'),
 (1, 3, 'Pega Aura - xe máy điện sang trọng', 'Thiết kế thời trang, yên rộng.', 27000000, 'Huế',
 '8 tháng', 'Bảo hành 6 tháng', 'Rất tốt', 'Việt Nam', 'ELECTRIC_BIKE',
-'ELECTRIC_MOTORBIKE', '2000W', '75 km/h', '120 km', '6 tiếng', 'Nhôm', 'Phanh đĩa', '14 inch', TRUE, 'APPROVED');
+'ELECTRIC_MOTORBIKE', '2000W', '75 km/h', '120 km', '6 tiếng', 
+'Nhôm', 'Phanh đĩa', '14 inch', TRUE, 'APPROVED');
+
+-- Cập nhật buyer_id cho sản phẩm 7
+UPDATE products SET buyer_id = 2 WHERE id = 7;
 
 -- =========================
 -- HÌNH ẢNH SẢN PHẨM
 -- =========================
-INSERT INTO product_media (product_id, media_url, media_type) VALUES
-(1, 'https://i.pinimg.com/736x/cb/2f/f2/cb2ff25a0b87274fb7e69d831f32a14d.jpg', 'IMAGE'),
-(2, 'https://i.pinimg.com/736x/cb/2f/f2/cb2ff25a0b87274fb7e69d831f32a14d.jpg', 'IMAGE'),
-(3, 'https://i.pinimg.com/736x/cb/2f/f2/cb2ff25a0b87274fb7e69d831f32a14d.jpg', 'IMAGE'),
-(4, 'https://i.pinimg.com/736x/1b/a5/42/1ba54211b20831ea48fb15fec0d5fce8.jpg', 'IMAGE'),
-(5, 'https://i.pinimg.com/736x/1b/a5/42/1ba54211b20831ea48fb15fec0d5fce8.jpg', 'IMAGE'),
-(6, 'https://i.pinimg.com/736x/1b/a5/42/1ba54211b20831ea48fb15fec0d5fce8.jpg', 'IMAGE'),
-(7, 'https://i.pinimg.com/1200x/5a/fc/c3/5afcc3b74f9ae072bb2f7d45de3d7f5b.jpg', 'IMAGE'),
-(8, 'https://i.pinimg.com/1200x/5a/fc/c3/5afcc3b74f9ae072bb2f7d45de3d7f5b.jpg', 'IMAGE'),
-(9, 'https://i.pinimg.com/1200x/5a/fc/c3/5afcc3b74f9ae072bb2f7d45de3d7f5b.jpg', 'IMAGE'),
-(10, 'https://i.pinimg.com/1200x/5a/fc/c3/5afcc3b74f9ae072bb2f7d45de3d7f5b.jpg', 'IMAGE');
+INSERT INTO product_media (product_id, media_url, media_type)
+SELECT id, 'https://i.pinimg.com/736x/cb/2f/f2/cb2ff25a0b87274fb7e69d831f32a14d.jpg', 'IMAGE' FROM products;
 
 -- =========================
 -- DUYỆT SẢN PHẨM
 -- =========================
 INSERT INTO product_approvals (product_id, admin_id, action, reason)
 SELECT id, 1, 'APPROVED', 'Kiểm duyệt nội dung hợp lệ.' FROM products;
+
+-- =========================
+-- CHAT & REVIEW CHO GIAO DỊCH NGOÀI ĐỜI
+-- =========================
+INSERT INTO chatboxes (host_id) VALUES (1);
+SET @chatbox_id = LAST_INSERT_ID();
+
+INSERT INTO chat_messages (chatbox_id, sender_id, message)
+VALUES
+(@chatbox_id, 2, 'Chào anh, xe Klara còn không ạ?'),
+(@chatbox_id, 1, 'Xe còn nhé, bạn muốn qua xem xe không?'),
+(@chatbox_id, 2, 'Dạ mai em qua xem nhé.'),
+(@chatbox_id, 1, 'Ok em, mai gặp nha.');
+
+-- Review sau giao dịch
+INSERT INTO reviews (member_id, product_id, rating, comment)
+VALUES
+(2, 7, 5, 'Xe chạy tốt, đúng mô tả, người bán thân thiện và hỗ trợ tận tình!');
+
+-- =========================
+-- PAYMENT (người bán đăng tin)
+-- =========================
+INSERT INTO payments (member_id, amount, status)
+VALUES (1, 10000, 'COMPLETED');
+
+INSERT INTO payment_history (payment_id, action)
+VALUES (LAST_INSERT_ID(), 'POST_PRODUCT');
+
+-- =========================
+-- DONE
+-- =========================
+SELECT '✅ SampleDB (FULL) initialized with products, buyer, chat, and review.' AS message;
