@@ -6,7 +6,7 @@ const Member = db.Member;
 // 🧾 Thành viên tạo đánh giá sản phẩm
 exports.createReview = async (req, res) => {
   try {
-    const member_id = req.user.member_id;
+    const member_id = req.user.memberId;
     const { product_id, rating, comment } = req.body;
 
     // Kiểm tra sản phẩm tồn tại
