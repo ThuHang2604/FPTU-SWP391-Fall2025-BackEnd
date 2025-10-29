@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const productController = require("../controllers/product.controller");
 const authMiddleware = require("../middlewares/authMiddleware");
+const adminMiddleware = require("../middlewares/adminMiddleware");
 
 /**
  * @swagger
@@ -89,6 +90,24 @@ router.get("/", productController.getAllProduct);
 
 /**
  * @swagger
+ * /api/products/search:
+ *   get:
+ *     summary: Tìm kiếm sản phẩm theo tên
+ *     tags: [Products]
+ *     parameters:
+ *       - in: query
+ *         name: name
+ *         schema:
+ *           type: string
+ *         description: Tên sản phẩm cần tìm (có thể bỏ trống)
+ *     responses:
+ *       200:
+ *         description: Kết quả tìm kiếm sản phẩm đã duyệt
+ */
+router.get("/search", productController.search);
+
+/**
+ * @swagger
  * /api/products/category/{cateId}:
  *   get:
  *     summary: Lấy sản phẩm theo category ID
@@ -108,22 +127,29 @@ router.get("/category/:cateId", productController.getProductByCateId);
 
 /**
  * @swagger
- * /api/products/search:
+ * /api/products/my:
  *   get:
- *     summary: Tìm kiếm sản phẩm theo tên
+ *     summary: Lấy danh sách sản phẩm của thành viên hiện tại
  *     tags: [Products]
- *     parameters:
- *       - in: query
- *         name: name
- *         required: true
- *         schema:
- *           type: string
- *         description: Tên sản phẩm cần tìm
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Kết quả tìm kiếm
+ *         description: Danh sách sản phẩm của member hiện tại
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total:
+ *                   type: integer
+ *                   example: 3
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Product'
  */
-router.get("/search", productController.search);
+router.get("/my", authMiddleware, productController.getProductByMemberId);
 
 /**
  * @swagger
@@ -137,7 +163,6 @@ router.get("/search", productController.search);
  *         required: true
  *         schema:
  *           type: integer
- *         description: ID của sản phẩm
  *     responses:
  *       200:
  *         description: Chi tiết sản phẩm
@@ -163,37 +188,10 @@ router.get("/:id", productController.getProductDetail);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               category_id:
- *                 type: integer
- *                 example: 2
- *               title:
- *                 type: string
- *                 example: "Pin Lithium 48V - 20Ah"
- *               description:
- *                 type: string
- *                 example: "Pin chính hãng, còn mới 90%"
- *               price:
- *                 type: number
- *                 example: 3500000
- *               location:
- *                 type: string
- *                 example: "TP. Hồ Chí Minh"
- *               product_type:
- *                 type: string
- *                 example: "BATTERY"
- *               media:
- *                 type: array
- *                 items:
- *                   $ref: '#/components/schemas/ProductMedia'
+ *             $ref: '#/components/schemas/Product'
  *     responses:
  *       201:
  *         description: Tạo sản phẩm thành công
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Product'
  */
 router.post("/", authMiddleware, productController.createProduct);
 
@@ -239,7 +237,6 @@ router.put("/:id", authMiddleware, productController.updateProductInfo);
  *         required: true
  *         schema:
  *           type: integer
- *         description: ID sản phẩm
  *     requestBody:
  *       required: true
  *       content:
@@ -261,8 +258,6 @@ router.put("/:id", authMiddleware, productController.updateProductInfo);
  *         description: Dữ liệu không hợp lệ
  *       403:
  *         description: Không có quyền
- *       404:
- *         description: Không tìm thấy sản phẩm
  */
 router.put("/:id/status", authMiddleware, productController.updateProductStatus);
 
@@ -280,7 +275,6 @@ router.put("/:id/status", authMiddleware, productController.updateProductStatus)
  *         required: true
  *         schema:
  *           type: integer
- *         description: ID của sản phẩm cần duyệt
  *     requestBody:
  *       required: true
  *       content:
@@ -291,44 +285,14 @@ router.put("/:id/status", authMiddleware, productController.updateProductStatus)
  *               status:
  *                 type: string
  *                 enum: [APPROVED, REJECTED]
- *                 example: "APPROVED"
  *               reason:
  *                 type: string
- *                 example: "Ảnh mờ, cần chụp rõ hơn"
  *     responses:
  *       200:
  *         description: Duyệt sản phẩm thành công
- *       403:
- *         description: Không phải admin
  *       404:
  *         description: Không tìm thấy sản phẩm
  */
-router.put("/:id/moderate", authMiddleware, productController.updateModerateStatus);
-
-/**
- * @swagger
- * /api/products/my:
- *   get:
- *     summary: Lấy danh sách sản phẩm của thành viên hiện tại
- *     tags: [Products]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Danh sách sản phẩm của member
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 total:
- *                   type: integer
- *                   example: 5
- *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Product'
- */
-router.get("/my", authMiddleware, productController.getProductByMemberId);
+router.put("/:id/moderate", authMiddleware, adminMiddleware, productController.updateModerateStatus);
 
 module.exports = router;

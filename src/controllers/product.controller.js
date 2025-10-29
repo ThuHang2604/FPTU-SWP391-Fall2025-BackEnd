@@ -1,66 +1,107 @@
 const db = require("../models");
-const { Product, ProductMedia, Member, ProductApproval, Admin } = db;
-const { Op } = db.Sequelize;
+const {
+  Product,
+  ProductMedia,
+  Member,
+  ProductApproval,
+  Admin,
+  Category,
+  Sequelize,
+} = db;
+const { Op } = Sequelize;
 
+// ========================
 // Lấy tất cả sản phẩm
+// ========================
 exports.getAllProduct = async (req, res) => {
   try {
     const products = await Product.findAll({
-      include: [{ model: ProductMedia, as: "media" }],
+      include: [
+        { model: ProductMedia, as: "media" },
+        { model: Category, as: "category" },
+        { model: Member, as: "member" },
+      ],
+      order: [["created_at", "DESC"]],
     });
     res.json(products);
   } catch (err) {
-    res.status(500).json({ message: "Internal server error", err });
+    console.error("getAllProduct error:", err);
+    res.status(500).json({ message: "Internal server error", error: err.message });
   }
 };
 
-// Theo category
+// ========================
+// Lấy sản phẩm theo Category ID
+// ========================
 exports.getProductByCateId = async (req, res) => {
   try {
     const { cateId } = req.params;
     const products = await Product.findAll({
       where: { category_id: cateId },
-      include: [{ model: ProductMedia, as: "media" }],
+      include: [
+        { model: ProductMedia, as: "media" },
+        { model: Category, as: "category" },
+      ],
     });
     res.json(products);
   } catch (err) {
-    res.status(500).json({ message: "Internal server error", err });
+    console.error("getProductByCateId error:", err);
+    res.status(500).json({ message: "Internal server error", error: err.message });
   }
 };
 
-// Search
+// ========================
+// Tìm kiếm sản phẩm theo tên
+// ========================
 exports.search = async (req, res) => {
   try {
     const { name } = req.query;
     const products = await Product.findAll({
-      where: { title: { [Op.like]: `%${name}%` } },
+      where: {
+        title: { [Op.like]: `%${name || ""}%` },
+        status: "APPROVED", // chỉ tìm sản phẩm đã duyệt
+      },
       include: [{ model: ProductMedia, as: "media" }],
     });
     res.json(products);
   } catch (err) {
-    res.status(500).json({ message: "Internal server error", err });
+    console.error("search error:", err);
+    res.status(500).json({ message: "Internal server error", error: err.message });
   }
 };
 
+// ========================
 // Chi tiết sản phẩm
+// ========================
 exports.getProductDetail = async (req, res) => {
   try {
     const { id } = req.params;
     const product = await Product.findByPk(id, {
-      include: [{ model: ProductMedia, as: "media" }],
+      include: [
+        { model: ProductMedia, as: "media" },
+        { model: Category, as: "category" },
+        { model: Member, as: "member" },
+      ],
     });
+
     if (!product) return res.status(404).json({ message: "Product not found" });
     res.json(product);
   } catch (err) {
-    res.status(500).json({ message: "Internal server error", err });
+    console.error("getProductDetail error:", err);
+    res.status(500).json({ message: "Internal server error", error: err.message });
   }
 };
 
-// Tạo sản phẩm (Member)
+// ========================
+// Thành viên tạo sản phẩm
+// ========================
 exports.createProduct = async (req, res) => {
   const transaction = await db.sequelize.transaction();
   try {
-    const memberId = req.user.memberId; // 🧩 Sửa từ userId sang memberId
+    const memberId = req.user.memberId;
+    if (!memberId) {
+      return res.status(400).json({ message: "Không tìm thấy memberId trong token." });
+    }
 
     const productData = {
       member_id: memberId,
@@ -73,7 +114,7 @@ exports.createProduct = async (req, res) => {
       warranty_info: req.body.warranty_info,
       condition_status: req.body.condition_status,
       origin: req.body.origin,
-      product_type: req.body.product_type, // BATTERY / ELECTRIC_BIKE / ELECTRIC_CAR
+      product_type: req.body.product_type,
 
       // battery
       battery_type: req.body.battery_type,
@@ -134,19 +175,23 @@ exports.createProduct = async (req, res) => {
     res.status(201).json(full);
   } catch (err) {
     await transaction.rollback();
-    res.status(500).json({ message: "Internal server error", err });
+    console.error("createProduct error:", err);
+    res.status(500).json({ message: "Internal server error", error: err.message });
   }
 };
 
-// Cập nhật thông tin
+// ========================
+// Cập nhật sản phẩm (Member)
+// ========================
 exports.updateProductInfo = async (req, res) => {
   const transaction = await db.sequelize.transaction();
   try {
     const { id } = req.params;
     const product = await Product.findByPk(id);
 
-    if (!product || product.member_id !== req.user.memberId)
-      return res.status(403).json({ message: "Not authorized" });
+    if (!product || product.member_id !== req.user.memberId) {
+      return res.status(403).json({ message: "Không có quyền chỉnh sửa sản phẩm này." });
+    }
 
     Object.assign(product, req.body, { status: "PENDING" });
     await product.save({ transaction });
@@ -162,6 +207,7 @@ exports.updateProductInfo = async (req, res) => {
     }
 
     await transaction.commit();
+
     const updated = await Product.findByPk(id, {
       include: [{ model: ProductMedia, as: "media" }],
     });
@@ -169,154 +215,112 @@ exports.updateProductInfo = async (req, res) => {
     res.json(updated);
   } catch (err) {
     await transaction.rollback();
-    res.status(500).json({ message: "Internal server error", err });
+    console.error("updateProductInfo error:", err);
+    res.status(500).json({ message: "Internal server error", error: err.message });
   }
 };
 
+// ========================
 // Cập nhật trạng thái sản phẩm (Member)
+// ========================
 exports.updateProductStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, buyer_id } = req.body; // 👈 Cho phép truyền buyer_id nếu status = SOLD
+    const { status, buyer_id } = req.body;
     const memberId = req.user.memberId;
 
-    // ✅ Kiểm tra trạng thái hợp lệ
     if (!["SOLD", "INACTIVE"].includes(status)) {
       return res.status(400).json({ message: "Trạng thái không hợp lệ." });
     }
 
-    // ✅ Tìm sản phẩm
     const product = await Product.findByPk(id);
-    if (!product) {
-      return res.status(404).json({ message: "Không tìm thấy sản phẩm." });
-    }
+    if (!product) return res.status(404).json({ message: "Không tìm thấy sản phẩm." });
 
-    // ✅ Kiểm tra quyền sở hữu
     if (product.member_id !== memberId) {
       return res.status(403).json({ message: "Bạn không có quyền cập nhật sản phẩm này." });
     }
 
-    // ✅ Nếu là chuyển sang SOLD → yêu cầu có buyer_id
     if (status === "SOLD") {
       if (!buyer_id) {
-        return res.status(400).json({ message: "Vui lòng cung cấp buyer_id khi đánh dấu sản phẩm là ĐÃ BÁN." });
+        return res.status(400).json({ message: "Cần cung cấp buyer_id khi đánh dấu ĐÃ BÁN." });
       }
 
-      // Kiểm tra buyer tồn tại
-      const buyer = await db.Member.findByPk(buyer_id);
-      if (!buyer) {
-        return res.status(404).json({ message: "Không tìm thấy người mua (buyer_id không hợp lệ)." });
-      }
+      const buyer = await Member.findByPk(buyer_id);
+      if (!buyer) return res.status(404).json({ message: "Buyer không tồn tại." });
+      if (buyer.id === memberId)
+        return res.status(400).json({ message: "Người bán không thể là người mua chính mình." });
 
-      // Không cho seller tự chọn chính mình làm buyer
-      if (buyer.id === memberId) {
-        return res.status(400).json({ message: "Người bán không thể là người mua sản phẩm của chính mình." });
-      }
-
-      // Cập nhật trạng thái và buyer_id
-      await product.update({
-        status: "SOLD",
-        buyer_id,
-      });
+      await product.update({ status: "SOLD", buyer_id });
     } else {
-      // ✅ Nếu là INACTIVE → chỉ cập nhật status
-      await product.update({ status, buyer_id: null });
+      await product.update({ status: "INACTIVE", buyer_id: null });
     }
 
-    return res.status(200).json({
-      message: "Cập nhật trạng thái sản phẩm thành công.",
-      product,
-    });
+    res.json({ message: "Cập nhật trạng thái thành công.", product });
   } catch (err) {
-    console.error("❌ Lỗi updateProductStatus:", err);
-    return res.status(500).json({
-      message: "Lỗi máy chủ.",
-      error: err.message,
-    });
+    console.error("updateProductStatus error:", err);
+    res.status(500).json({ message: "Internal server error", error: err.message });
   }
 };
 
-// Admin duyệt bài
+// ========================
+// Duyệt bài (Admin)
+// ========================
 exports.updateModerateStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, reason } = req.body;
 
-    // Kiểm tra trạng thái hợp lệ
     if (!["APPROVED", "REJECTED"].includes(status)) {
       return res.status(400).json({ message: "Invalid status" });
     }
 
-    // Kiểm tra sản phẩm tồn tại
     const product = await Product.findByPk(id);
-    if (!product) {
-      return res.status(404).json({ message: "Product not found" });
-    }
+    if (!product) return res.status(404).json({ message: "Product not found" });
 
-    // 🔹 Lấy admin theo user_id trong token
     const admin = await Admin.findOne({ where: { user_id: req.user.userId } });
-    if (!admin) {
-      return res.status(404).json({ message: "Admin not found for this user" });
-    }
+    if (!admin) return res.status(404).json({ message: "Admin not found" });
 
-    // 🔹 Cập nhật trạng thái sản phẩm
-    product.status = status;
-    await product.save();
+    await product.update({ status });
 
-    // 🔹 Ghi log vào bảng product_approvals
     await ProductApproval.create({
       product_id: product.id,
-      admin_id: admin.id, // Dùng admin.id trong bảng admins
+      admin_id: admin.id,
       action: status,
       reason,
     });
 
-    res.json({
-      message: "Product moderation updated successfully",
-      product,
-    });
+    res.json({ message: "Moderation updated successfully", product });
   } catch (err) {
     console.error("updateModerateStatus error:", err);
-    res.status(500).json({
-      message: "Internal server error",
-      error: err.message,
-    });
+    res.status(500).json({ message: "Internal server error", error: err.message });
   }
 };
 
+// ========================
 // Lấy sản phẩm theo memberId (Member)
+// ========================
 exports.getProductByMemberId = async (req, res) => {
   try {
-    const memberId = req.user.memberId; // lấy từ token (authMiddleware)
-
-    if (!memberId) {
+    const memberId = req.user.memberId;
+    if (!memberId)
       return res.status(400).json({ message: "Không tìm thấy memberId trong token." });
-    }
 
-    const products = await db.Product.findAll({
+    const products = await Product.findAll({
       where: { member_id: memberId },
       include: [
-        {
-          model: db.ProductMedia,
-          as: "media",
-          attributes: ["id", "media_url", "media_type"],
-        },
-        {
-          model: db.Category,
-          as: "category",
-          attributes: ["id", "name"],
-        },
+        { model: ProductMedia, as: "media" },
+        { model: Category, as: "category" },
       ],
       order: [["created_at", "DESC"]],
     });
 
-    return res.status(200).json({
-      message: "Lấy danh sách sản phẩm của thành viên thành công.",
+    res.json({
+      message: "Lấy danh sách sản phẩm thành công.",
       total: products.length,
       data: products,
     });
-  } catch (error) {
-    console.error("getProductByMemberId error:", error);
-    return res.status(500).json({ message: "Lỗi máy chủ khi lấy sản phẩm của thành viên.", error });
+  } catch (err) {
+    console.error("getProductByMemberId error:", err);
+    res.status(500).json({ message: "Internal server error", error: err.message });
   }
 };
