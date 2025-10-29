@@ -1,10 +1,11 @@
+// models/paymentHistory.model.js
 module.exports = (sequelize, DataTypes) => {
   const PaymentHistory = sequelize.define("PaymentHistory", {
     id: { type: DataTypes.BIGINT, autoIncrement: true, primaryKey: true },
     payment_id: { type: DataTypes.BIGINT, allowNull: false },
     status: {
       type: DataTypes.ENUM("INITIATED", "PROCESSING", "SUCCESS", "FAILED"),
-      allowNull: false
+      allowNull: false,
     },
     note: { type: DataTypes.TEXT },
   }, {
@@ -13,10 +14,6 @@ module.exports = (sequelize, DataTypes) => {
     createdAt: "created_at",
     updatedAt: false,
   });
-
-  PaymentHistory.associate = (models) => {
-    PaymentHistory.belongsTo(models.Payment, { foreignKey: "payment_id", as: "payment" });
-  };
 
   return PaymentHistory;
 };

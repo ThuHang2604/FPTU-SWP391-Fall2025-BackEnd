@@ -1,18 +1,18 @@
+// controllers/payment.controller.js
+const paypal = require("@paypal/checkout-server-sdk");
 const paypalClient = require("../config/paypal");
 const { Payment, PaymentHistory, Member } = require("../models");
-const paypal = require("@paypal/checkout-server-sdk");
 
 // ⚙️ [POST] /api/payments/create
 exports.createPayment = async (req, res) => {
   try {
     const { packageId } = req.body;
-    const memberId = req.user.id;
+    const memberId = req.user.memberId;
 
-    // Gói nạp hiển thị cố định
     const packages = [
-      { id: 1, name: "Gói 100K", vnd: 100000, usd: 4 },
-      { id: 2, name: "Gói 300K", vnd: 300000, usd: 12 },
-      { id: 3, name: "Gói 500K", vnd: 500000, usd: 20 },
+      { id: 1, name: "Gói 100K", usd: 4 },
+      { id: 2, name: "Gói 300K", usd: 12 },
+      { id: 3, name: "Gói 500K", usd: 20 },
     ];
     const selected = packages.find((p) => p.id === packageId);
     if (!selected)
@@ -39,21 +39,16 @@ exports.createPayment = async (req, res) => {
 
     const order = await paypalClient.execute(request);
 
-    // Lưu Payment (PENDING)
     const payment = await Payment.create({
       member_id: memberId,
       amount: selected.usd,
-      amount_vnd: selected.vnd,
-      package_name: selected.name,
       payment_method: "PAYPAL",
       payment_status: "PENDING",
       paypal_order_id: order.result.id,
     });
 
-    // Ghi lịch sử
     await PaymentHistory.create({
       payment_id: payment.id,
-      type: "DEPOSIT",
       status: "INITIATED",
       note: "Khởi tạo giao dịch PayPal",
     });
@@ -83,13 +78,12 @@ exports.successPayment = async (req, res) => {
 
     await PaymentHistory.create({
       payment_id: payment.id,
-      type: "DEPOSIT",
       status: "SUCCESS",
       note: "Thanh toán PayPal thành công",
     });
 
     const member = await Member.findByPk(payment.member_id);
-    member.balance += payment.amount_vnd;
+    member.wallet_balance = Number(member.wallet_balance) + Number(payment.amount);
     await member.save();
 
     res.redirect(`${process.env.CLIENT_URL || "http://localhost:3000"}/payment-success`);
@@ -108,8 +102,8 @@ exports.cancelPayment = async (req, res) => {
 exports.getPaymentHistory = async (req, res) => {
   try {
     const histories = await Payment.findAll({
-      where: { member_id: req.user.id },
-      include: [{ model: PaymentHistory, as: "histories" }],
+      where: { member_id: req.user.memberId },
+      include: [{ model: PaymentHistory, as: "history" }],
       order: [["id", "DESC"]],
     });
     res.json(histories);
@@ -118,20 +112,20 @@ exports.getPaymentHistory = async (req, res) => {
   }
 };
 
-// ⚙️ Hàm tiện ích: Trừ tiền khi đăng tin
+// ⚙️ Trừ tiền khi đăng tin
 exports.deductBalance = async (memberId, amount, note = "Đăng tin") => {
   const member = await Member.findByPk(memberId);
-  if (!member || member.balance < amount) throw new Error("Số dư không đủ");
+  if (!member || Number(member.wallet_balance) < amount)
+    throw new Error("Số dư không đủ");
 
-  member.balance -= amount;
+  member.wallet_balance = Number(member.wallet_balance) - amount;
   await member.save();
 
   await PaymentHistory.create({
     payment_id: null,
-    type: "USAGE",
     status: "SUCCESS",
     note,
   });
 
-  return member.balance;
+  return member.wallet_balance;
 };
