@@ -152,11 +152,11 @@ VALUES
 -- =========================
 -- PAYMENT (người bán đăng tin)
 -- =========================
-INSERT INTO payments (member_id, amount, status)
+INSERT INTO payments (member_id, amount, payment_status)
 VALUES (1, 10000, 'COMPLETED');
 
-INSERT INTO payment_history (payment_id, action)
-VALUES (LAST_INSERT_ID(), 'POST_PRODUCT');
+INSERT INTO payment_history (payment_id, status, note)
+VALUES (LAST_INSERT_ID(), 'SUCCESS', 'Thanh toán hoàn tất khi đăng tin sản phẩm');
 
 -- =========================
 -- DONE
