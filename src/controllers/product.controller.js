@@ -178,7 +178,7 @@ exports.updateProductStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, buyer_id } = req.body; // 👈 Cho phép truyền buyer_id nếu status = SOLD
-    const memberId = req.user.member_id;
+    const memberId = req.user.memberId;
 
     // ✅ Kiểm tra trạng thái hợp lệ
     if (!["SOLD", "INACTIVE"].includes(status)) {
