@@ -8,37 +8,18 @@ const adminMiddleware = require("../middlewares/adminMiddleware");
  * @swagger
  * tags:
  *   name: Users
- *   description: Quản lý người dùng (Admin)
+ *   description: Quản lý người dùng (chỉ ADMIN)
  */
-
-/**
- * @swagger
- * /api/users/search-buyer:
- *   get:
- *     summary: Tìm kiếm người mua theo email hoặc số điện thoại
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: query
- *         schema:
- *           type: string
- *         required: true
- *         description: Email hoặc số điện thoại của người mua
- *     responses:
- *       200:
- *         description: Thông tin người mua (bao gồm buyer_id)
- *       404:
- *         description: Không tìm thấy người mua
- *       400:
- *         description: Thiếu tham số query
- */
-router.get("/search-buyer", authMiddleware, userController.searchBuyer);
 
 /**
  * @swagger
  * components:
+ *   securitySchemes:
+ *     bearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
+ *
  *   schemas:
  *     User:
  *       type: object
@@ -64,14 +45,16 @@ router.get("/search-buyer", authMiddleware, userController.searchBuyer);
  *           example: "ADMIN"
  *         status:
  *           type: string
- *           enum: [ACTIVE, INACTIVE]
+ *           enum: [ACTIVE, INACTIVE, PENDING]
  *           example: "ACTIVE"
  *         created_at:
  *           type: string
  *           format: date-time
+ *           example: "2025-10-29T09:12:00Z"
  *         updated_at:
  *           type: string
  *           format: date-time
+ *           example: "2025-10-29T09:20:00Z"
  *
  *     CreateAdminRequest:
  *       type: object
@@ -96,13 +79,37 @@ router.get("/search-buyer", authMiddleware, userController.searchBuyer);
  *           type: string
  *           example: "https://example.com/avatar-admin.png"
  *
+ *     SearchBuyerResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           example: true
+ *         data:
+ *           type: object
+ *           properties:
+ *             buyer_id:
+ *               type: integer
+ *               example: 5
+ *             full_name:
+ *               type: string
+ *               example: "Lê Thị Mua"
+ *             email:
+ *               type: string
+ *               example: "buyer@example.com"
+ *             phone:
+ *               type: string
+ *               example: "0900000003"
+ *
  *     ApiResponse:
  *       type: object
  *       properties:
  *         success:
  *           type: boolean
+ *           example: true
  *         message:
  *           type: string
+ *           example: "Thao tác thành công."
  *         data:
  *           type: object
  */
@@ -151,14 +158,19 @@ router.get("/", authMiddleware, adminMiddleware, userController.getAllUsers);
  *         required: true
  *         schema:
  *           type: integer
- *         description: ID của người dùng
+ *         description: ID của người dùng cần xem
  *     responses:
  *       200:
  *         description: Lấy thông tin người dùng thành công
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/User'
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/User'
  *       404:
  *         description: Không tìm thấy người dùng
  *       500:
@@ -183,11 +195,13 @@ router.get("/:id", authMiddleware, adminMiddleware, userController.getUserById);
  *         description: ID của người dùng cần phê duyệt
  *     responses:
  *       200:
- *         description: Người dùng đã được phê duyệt thành công
+ *         description: Phê duyệt thành công
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
+ *       400:
+ *         description: Người dùng đã được kích hoạt
  *       404:
  *         description: Không tìm thấy người dùng
  *       500:
@@ -217,12 +231,43 @@ router.patch("/:id/approve", authMiddleware, adminMiddleware, userController.app
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
+ *       400:
+ *         description: Người dùng đã bị khóa trước đó
  *       404:
  *         description: Không tìm thấy người dùng
  *       500:
  *         description: Lỗi server
  */
 router.patch("/:id/block", authMiddleware, adminMiddleware, userController.blockUser);
+
+/**
+ * @swagger
+ * /api/users/{id}:
+ *   delete:
+ *     summary: Xóa người dùng khỏi hệ thống
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID của người dùng cần xóa
+ *     responses:
+ *       200:
+ *         description: Xóa người dùng thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ *       404:
+ *         description: Không tìm thấy người dùng
+ *       500:
+ *         description: Lỗi server
+ */
+router.delete("/:id", authMiddleware, adminMiddleware, userController.deleteUser);
 
 /**
  * @swagger
@@ -246,7 +291,7 @@ router.patch("/:id/block", authMiddleware, adminMiddleware, userController.block
  *             schema:
  *               $ref: '#/components/schemas/ApiResponse'
  *       400:
- *         description: Dữ liệu không hợp lệ hoặc email đã tồn tại
+ *         description: Dữ liệu không hợp lệ hoặc email/số điện thoại đã tồn tại
  *       500:
  *         description: Lỗi server
  */
@@ -254,28 +299,33 @@ router.post("/admin", authMiddleware, adminMiddleware, userController.createAdmi
 
 /**
  * @swagger
- * /api/users/{id}:
- *   delete:
- *     summary: Xóa người dùng
+ * /api/users/search-buyer:
+ *   get:
+ *     summary: Tìm kiếm người mua theo email hoặc số điện thoại
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
+ *       - in: query
+ *         name: query
  *         schema:
- *           type: integer
- *         description: ID của người dùng cần xóa
+ *           type: string
+ *         required: true
+ *         description: Email hoặc số điện thoại của người mua cần tìm
  *     responses:
  *       200:
- *         description: Xóa người dùng thành công
+ *         description: Thông tin người mua hợp lệ
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SearchBuyerResponse'
+ *       400:
+ *         description: Thiếu tham số query
  *       404:
- *         description: Không tìm thấy người dùng
+ *         description: Không tìm thấy người mua hợp lệ
  *       500:
  *         description: Lỗi server
  */
-router.delete("/:id", authMiddleware, adminMiddleware, userController.deleteUser);
+router.get("/search-buyer", authMiddleware, userController.searchBuyer);
 
 module.exports = router;
-

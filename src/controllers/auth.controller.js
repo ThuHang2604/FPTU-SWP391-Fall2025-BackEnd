@@ -1,29 +1,29 @@
-// src/controllers/auth.controller.js
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const db = require("../models");
-
 const { User, Member, Admin } = db;
+const { Op } = db.Sequelize;
 
 /**
  * [POST] /api/auth/register
- * Đăng ký người dùng mới (Member hoặc Admin)
  */
 exports.register = async (req, res) => {
   try {
     const { full_name, email, password, phone, role, address, city, country } = req.body;
 
-    // Kiểm tra email đã tồn tại chưa
-    const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) {
-      return res.status(400).json({ message: "Email đã được sử dụng." });
+    if (!email || !password || !full_name) {
+      return res.status(400).json({ message: "Thiếu thông tin đăng ký bắt buộc." });
     }
 
-    // Mã hóa mật khẩu
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const existingUser = await User.findOne({
+      where: { [Op.or]: [{ email }, { phone }] },
+    });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email hoặc số điện thoại đã tồn tại." });
+    }
 
-    // Tạo bản ghi user
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const user = await User.create({
       full_name,
       email,
@@ -32,7 +32,6 @@ exports.register = async (req, res) => {
       role: role || "MEMBER",
     });
 
-    // Nếu là MEMBER → tạo record trong bảng members
     let memberRecord = null;
     if (user.role === "MEMBER") {
       memberRecord = await Member.create({
@@ -41,10 +40,7 @@ exports.register = async (req, res) => {
         city: city || null,
         country: country || "Vietnam",
       });
-    }
-
-    // Nếu là ADMIN → tạo record trong bảng admins
-    if (user.role === "ADMIN") {
+    } else if (user.role === "ADMIN") {
       await Admin.create({ user_id: user.id });
     }
 
@@ -58,46 +54,39 @@ exports.register = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Lỗi máy chủ nội bộ", error });
+    console.error("❌ Register Error:", error);
+    res.status(500).json({ message: "Lỗi máy chủ nội bộ" });
   }
 };
 
 /**
  * [POST] /api/auth/login
- * Đăng nhập và trả về JWT token
  */
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Kiểm tra người dùng tồn tại
     const user = await User.findOne({ where: { email } });
-    if (!user) {
-      return res.status(401).json({ message: "Email hoặc mật khẩu không hợp lệ." });
+    if (!user) return res.status(401).json({ message: "Email hoặc mật khẩu không hợp lệ." });
+
+    if (user.status !== "ACTIVE") {
+      return res.status(403).json({ message: "Tài khoản đã bị khóa hoặc chưa được kích hoạt." });
     }
 
-    // Kiểm tra mật khẩu
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Email hoặc mật khẩu không hợp lệ." });
-    }
+    if (!isMatch) return res.status(401).json({ message: "Email hoặc mật khẩu không hợp lệ." });
 
-    // Nếu là member thì lấy member_id
     let memberId = null;
     if (user.role === "MEMBER") {
       const member = await Member.findOne({ where: { user_id: user.id } });
-      memberId = member ? member.id : null;
+      if (member?.status !== "ACTIVE") {
+        return res.status(403).json({ message: "Tài khoản thành viên tạm bị đình chỉ." });
+      }
+      memberId = member?.id || null;
     }
 
-    // Tạo JWT token
     const token = jwt.sign(
-      {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-        memberId,
-      },
+      { userId: user.id, email: user.email, role: user.role, memberId },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
@@ -105,138 +94,89 @@ exports.login = async (req, res) => {
     res.json({
       message: "Đăng nhập thành công.",
       token,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        memberId,
-      },
+      user: { id: user.id, email: user.email, role: user.role, memberId },
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Lỗi máy chủ nội bộ", error });
+    console.error("❌ Login Error:", error);
+    res.status(500).json({ message: "Lỗi máy chủ nội bộ" });
   }
 };
 
 /**
  * [GET] /api/auth/profile
- * → Lấy thông tin cá nhân của user đang đăng nhập (kèm ngày tạo tài khoản)
  */
 exports.getUserProfile = async (req, res) => {
   try {
     const user = await User.findByPk(req.user.userId, {
-      attributes: [
-        "id",
-        "full_name",
-        "email",
-        "phone",
-        "avatar",
-        "role",
-        "status",
-        "created_at" // 👈 thêm trường này
-      ],
+      attributes: ["id", "full_name", "email", "phone", "avatar", "role", "status", "created_at"],
       include: [
-        {
-          model: Member,
-          as: "member",
-          attributes: ["id", "address", "city", "country", "wallet_balance"],
-          required: false,
-        },
-        {
-          model: Admin,
-          as: "admin",
-          attributes: ["id"],
-          required: false,
-        },
+        { model: Member, as: "member", attributes: ["id", "address", "city", "country", "wallet_balance"] },
       ],
     });
 
-    if (!user) {
-      return res.status(404).json({ message: "Không tìm thấy người dùng." });
-    }
+    if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng." });
 
-    res.json({
-      id: user.id,
-      full_name: user.full_name,
-      email: user.email,
-      phone: user.phone,
-      avatar: user.avatar,
-      role: user.role,
-      status: user.status,
-      created_at: user.created_at, // 👈 thêm ngày tạo
-      member: user.member || null,
-    });
+    res.json({ success: true, data: user });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Lỗi máy chủ nội bộ", error });
+    res.status(500).json({ message: "Lỗi máy chủ nội bộ" });
   }
 };
 
 /**
  * [PUT] /api/auth/profile
- * → Cập nhật thông tin cá nhân (chỉ cho chính mình)
  */
 exports.updateUserProfile = async (req, res) => {
   try {
     const { full_name, phone, avatar, address, city, country } = req.body;
-
     const user = await User.findByPk(req.user.userId);
-    if (!user) {
-      return res.status(404).json({ message: "Không tìm thấy người dùng." });
-    }
+    if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng." });
+    if (user.status !== "ACTIVE") return res.status(403).json({ message: "Tài khoản bị khóa." });
 
-    // Cập nhật thông tin cơ bản
-    user.full_name = full_name || user.full_name;
-    user.phone = phone || user.phone;
-    user.avatar = avatar || user.avatar;
+    Object.assign(user, { full_name, phone, avatar });
     await user.save();
 
-    // Nếu là member thì cập nhật địa chỉ
     if (user.role === "MEMBER") {
       const member = await Member.findOne({ where: { user_id: user.id } });
       if (member) {
-        member.address = address || member.address;
-        member.city = city || member.city;
-        member.country = country || member.country;
+        Object.assign(member, { address, city, country });
         await member.save();
       }
     }
 
-    res.json({
-      message: "Cập nhật thông tin cá nhân thành công.",
-      user,
-    });
+    res.json({ message: "Cập nhật thông tin thành công.", user });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Lỗi máy chủ nội bộ", error });
+    res.status(500).json({ message: "Lỗi máy chủ nội bộ" });
   }
 };
 
 /**
  * [PUT] /api/auth/change-password
- * → Đổi mật khẩu (chỉ người đang đăng nhập)
  */
 exports.changePassword = async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ message: "Vui lòng nhập đầy đủ mật khẩu cũ và mới." });
+    }
 
     const user = await User.findByPk(req.user.userId);
-    if (!user) {
-      return res.status(404).json({ message: "Không tìm thấy người dùng." });
-    }
+    if (!user) return res.status(404).json({ message: "Không tìm thấy người dùng." });
 
     const isMatch = await bcrypt.compare(oldPassword, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Mật khẩu cũ không chính xác." });
+    if (!isMatch) return res.status(400).json({ message: "Mật khẩu cũ không chính xác." });
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Mật khẩu mới phải có ít nhất 6 ký tự." });
     }
 
-    const hashedNew = await bcrypt.hash(newPassword, 10);
-    user.password = hashedNew;
+    user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
 
     res.json({ message: "Đổi mật khẩu thành công." });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Lỗi máy chủ nội bộ", error });
+    res.status(500).json({ message: "Lỗi máy chủ nội bộ" });
   }
 };
