@@ -27,6 +27,10 @@ db.ProductApproval = require("./productApproval.model")(sequelize, Sequelize.Dat
 db.User.hasOne(db.Member, { foreignKey: "user_id", as: "member", onDelete: "CASCADE" });
 db.Member.belongsTo(db.User, { foreignKey: "user_id", as: "user" });
 
+// User ↔ Admin
+db.User.hasOne(db.Admin, { foreignKey: "user_id", as: "admin", onDelete: "CASCADE" });
+db.Admin.belongsTo(db.User, { foreignKey: "user_id", as: "user" });
+
 // Member ↔ Payment
 db.Member.hasMany(db.Payment, { foreignKey: "member_id", as: "payments", onDelete: "CASCADE" });
 db.Payment.belongsTo(db.Member, { foreignKey: "member_id", as: "member" });
