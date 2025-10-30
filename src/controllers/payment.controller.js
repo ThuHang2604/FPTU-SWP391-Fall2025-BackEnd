@@ -1,14 +1,15 @@
 // controllers/payment.controller.js
 const paypal = require("@paypal/checkout-server-sdk");
 const paypalClient = require("../config/paypal");
-const { Payment, PaymentHistory, Member } = require("../models");
+const { sequelize, Payment, PaymentHistory, Member, Product } = require("../models");
 
 // ⚙️ [POST] /api/payments/create
 exports.createPayment = async (req, res) => {
   try {
-    const { packageId } = req.body;
+    const { packageId /* optional: productId, amount */ } = req.body;
     const memberId = req.user.memberId;
 
+    // Trường hợp nạp ví theo gói (mặc định hiện tại)
     const packages = [
       { id: 1, name: "Gói 100K", usd: 4 },
       { id: 2, name: "Gói 300K", usd: 12 },
@@ -39,12 +40,15 @@ exports.createPayment = async (req, res) => {
 
     const order = await paypalClient.execute(request);
 
+    // Lưu payment (wallet top-up). Nếu bạn làm flow trả phí cho 1 product,
+    // hãy set thêm product_id tại đây (ví dụ: product_id: req.body.productId)
     const payment = await Payment.create({
       member_id: memberId,
       amount: selected.usd,
       payment_method: "PAYPAL",
       payment_status: "PENDING",
       paypal_order_id: order.result.id,
+      product_id: req.body.productId ?? null,
     });
 
     await PaymentHistory.create({
@@ -63,31 +67,77 @@ exports.createPayment = async (req, res) => {
 
 // ⚙️ [GET] /api/payments/success
 exports.successPayment = async (req, res) => {
+  let t;
   try {
     const { token } = req.query;
+
+    // 1) Capture PayPal order
     const captureRequest = new paypal.orders.OrdersCaptureRequest(token);
     captureRequest.requestBody({});
     const capture = await paypalClient.execute(captureRequest);
-
     const orderId = capture.result.id;
-    const payment = await Payment.findOne({ where: { paypal_order_id: orderId } });
-    if (!payment) return res.status(404).json({ message: "Không tìm thấy giao dịch" });
 
-    payment.payment_status = "COMPLETED";
-    await payment.save();
+    // 2) Transaction để đảm bảo tính nhất quán
+    t = await sequelize.transaction();
 
-    await PaymentHistory.create({
-      payment_id: payment.id,
-      status: "SUCCESS",
-      note: "Thanh toán PayPal thành công",
+    // 3) Lấy payment tương ứng + lock để tránh đua tranh
+    const payment = await Payment.findOne({
+      where: { paypal_order_id: orderId },
+      transaction: t,
+      lock: t.LOCK.UPDATE,
     });
+if (!payment) {
+      await t.rollback();
+      return res.status(404).json({ message: "Không tìm thấy giao dịch" });
+    }
 
-    const member = await Member.findByPk(payment.member_id);
-    member.wallet_balance = Number(member.wallet_balance) + Number(payment.amount);
-    await member.save();
+    // 4) Idempotent: nếu đã COMPLETED, bỏ qua phần cập nhật để tránh xử lý 2 lần
+    if (payment.payment_status === "COMPLETED") {
+      await t.commit();
+      return res.redirect(
+        `${process.env.CLIENT_URL || "http://localhost:3000"}/payment-success?status=already_processed`
+      );
+    }
 
-    res.redirect(`${process.env.CLIENT_URL || "http://localhost:3000"}/payment-success`);
+    // 5) Đánh dấu payment COMPLETED
+    payment.payment_status = "COMPLETED";
+    await payment.save({ transaction: t });
+
+    await PaymentHistory.create(
+      {
+        payment_id: payment.id,
+        status: "SUCCESS",
+        note: "Thanh toán PayPal thành công",
+      },
+      { transaction: t }
+    );
+
+    // 6) Phân nhánh:
+    // - Nếu có product_id: đánh dấu product.is_paid = true (KHÔNG cộng ví)
+    // - Nếu không có product_id: coi là nạp ví (cộng ví như cũ)
+    if (payment.product_id) {
+      await Product.update(
+        { is_paid: true },
+        { where: { id: payment.product_id }, transaction: t }
+      );
+    } else {
+      const member = await Member.findByPk(payment.member_id, {
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+      });
+      member.wallet_balance =
+        Number(member.wallet_balance) + Number(payment.amount);
+      await member.save({ transaction: t });
+    }
+
+    await t.commit();
+
+    // 7) Redirect về client
+    res.redirect(
+      `${process.env.CLIENT_URL || "http://localhost:3000"}/payment-success`
+    );
   } catch (error) {
+    if (t) await t.rollback();
     console.error("PayPal Capture Error:", error);
     res.status(500).json({ message: "Lỗi xác nhận giao dịch" });
   }
@@ -112,7 +162,7 @@ exports.getPaymentHistory = async (req, res) => {
   }
 };
 
-// ⚙️ Trừ tiền khi đăng tin
+// ⚙️ Trừ tiền khi đăng tin (dùng cho flow trả bằng ví nội bộ)
 exports.deductBalance = async (memberId, amount, note = "Đăng tin") => {
   const member = await Member.findByPk(memberId);
   if (!member || Number(member.wallet_balance) < amount)

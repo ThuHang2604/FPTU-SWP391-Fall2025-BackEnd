@@ -64,6 +64,11 @@ const adminMiddleware = require("../middlewares/adminMiddleware");
  *         buyer_id:
  *           type: integer
  *           example: 9
+ *         is_paid:
+ *           type: boolean
+ *           description: "Đã thanh toán phí đăng tin/gói dịch vụ (hệ thống set sau khi thanh toán thành công)."
+ *           example: true
+ *           readOnly: true
  *         media:
  *           type: array
  *           items:
@@ -103,6 +108,12 @@ router.get("/", productController.getAllProduct);
  *     responses:
  *       200:
  *         description: Kết quả tìm kiếm sản phẩm đã duyệt
+ *         content:
+*           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Product'
  */
 router.get("/search", productController.search);
 
@@ -122,6 +133,12 @@ router.get("/search", productController.search);
  *     responses:
  *       200:
  *         description: Danh sách sản phẩm thuộc danh mục
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Product'
  */
 router.get("/category/:cateId", productController.getProductByCateId);
 
@@ -188,10 +205,24 @@ router.get("/:id", productController.getProductDetail);
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/Product'
+ *             allOf:
+ *               - $ref: '#/components/schemas/Product'
+ *             required:
+ *               - category_id
+ *               - title
+ *               - price
+ *               - product_type
+ *             properties:
+ *               is_paid:
+ *                 readOnly: true
+ *                 description: "Trường này do hệ thống thiết lập sau thanh toán; client không cần gửi."
  *     responses:
  *       201:
- *         description: Tạo sản phẩm thành công
+*         description: Tạo sản phẩm thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Product'
  */
 router.post("/", authMiddleware, productController.createProduct);
 
@@ -214,7 +245,12 @@ router.post("/", authMiddleware, productController.createProduct);
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/Product'
+ *             allOf:
+ *               - $ref: '#/components/schemas/Product'
+ *             properties:
+ *               is_paid:
+ *                 readOnly: true
+ *                 description: "Không cho chỉnh trực tiếp qua API; hệ thống set sau khi thanh toán."
  *     responses:
  *       200:
  *         description: Cập nhật thành công
@@ -291,7 +327,7 @@ router.put("/:id/status", authMiddleware, productController.updateProductStatus)
  *       200:
  *         description: Duyệt sản phẩm thành công
  *       404:
- *         description: Không tìm thấy sản phẩm
+*         description: Không tìm thấy sản phẩm
  */
 router.put("/:id/moderate", authMiddleware, adminMiddleware, productController.updateModerateStatus);
 

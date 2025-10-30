@@ -1,3 +1,4 @@
+// controllers/product.controller.js
 const db = require("../models");
 const {
   Product,
@@ -16,6 +17,7 @@ const { Op } = Sequelize;
 exports.getAllProduct = async (req, res) => {
   try {
     const products = await Product.findAll({
+      attributes: { include: ["is_paid"] },
       include: [
         { model: ProductMedia, as: "media" },
         { model: Category, as: "category" },
@@ -38,10 +40,12 @@ exports.getProductByCateId = async (req, res) => {
     const { cateId } = req.params;
     const products = await Product.findAll({
       where: { category_id: cateId },
+      attributes: { include: ["is_paid"] },
       include: [
         { model: ProductMedia, as: "media" },
         { model: Category, as: "category" },
       ],
+      order: [["created_at", "DESC"]],
     });
     res.json(products);
   } catch (err) {
@@ -61,7 +65,9 @@ exports.search = async (req, res) => {
         title: { [Op.like]: `%${name || ""}%` },
         status: "APPROVED", // chỉ tìm sản phẩm đã duyệt
       },
+      attributes: { include: ["is_paid"] },
       include: [{ model: ProductMedia, as: "media" }],
+      order: [["created_at", "DESC"]],
     });
     res.json(products);
   } catch (err) {
@@ -77,6 +83,7 @@ exports.getProductDetail = async (req, res) => {
   try {
     const { id } = req.params;
     const product = await Product.findByPk(id, {
+      attributes: { include: ["is_paid"] },
       include: [
         { model: ProductMedia, as: "media" },
         { model: Category, as: "category" },
@@ -96,7 +103,7 @@ exports.getProductDetail = async (req, res) => {
 // Thành viên tạo sản phẩm
 // ========================
 exports.createProduct = async (req, res) => {
-  const transaction = await db.sequelize.transaction();
+const transaction = await db.sequelize.transaction();
   try {
     const memberId = req.user.memberId;
     if (!memberId) {
@@ -153,6 +160,7 @@ exports.createProduct = async (req, res) => {
       has_battery_included: req.body.has_battery_included,
 
       status: "PENDING",
+      // is_paid: false, // không cần set vì DB đã default 0/false
     };
 
     const product = await Product.create(productData, { transaction });
@@ -169,6 +177,7 @@ exports.createProduct = async (req, res) => {
     await transaction.commit();
 
     const full = await Product.findByPk(product.id, {
+      attributes: { include: ["is_paid"] },
       include: [{ model: ProductMedia, as: "media" }],
     });
 
@@ -179,7 +188,6 @@ exports.createProduct = async (req, res) => {
     res.status(500).json({ message: "Internal server error", error: err.message });
   }
 };
-
 // ========================
 // Cập nhật sản phẩm (Member)
 // ========================
@@ -192,6 +200,10 @@ exports.updateProductInfo = async (req, res) => {
     if (!product || product.member_id !== req.user.memberId) {
       return res.status(403).json({ message: "Không có quyền chỉnh sửa sản phẩm này." });
     }
+
+    // Chặn user tự ý chỉnh is_paid nếu muốn (optional):
+    // const { is_paid, ...payload } = req.body;
+    // Object.assign(product, payload, { status: "PENDING" });
 
     Object.assign(product, req.body, { status: "PENDING" });
     await product.save({ transaction });
@@ -209,6 +221,7 @@ exports.updateProductInfo = async (req, res) => {
     await transaction.commit();
 
     const updated = await Product.findByPk(id, {
+      attributes: { include: ["is_paid"] },
       include: [{ model: ProductMedia, as: "media" }],
     });
 
@@ -255,7 +268,16 @@ exports.updateProductStatus = async (req, res) => {
       await product.update({ status: "INACTIVE", buyer_id: null });
     }
 
-    res.json({ message: "Cập nhật trạng thái thành công.", product });
+    // Reload để đảm bảo trả về đủ thuộc tính (kèm is_paid)
+    const withIsPaid = await Product.findByPk(id, {
+      attributes: { include: ["is_paid"] },
+      include: [
+{ model: ProductMedia, as: "media" },
+        { model: Category, as: "category" },
+      ],
+    });
+
+    res.json({ message: "Cập nhật trạng thái thành công.", product: withIsPaid });
   } catch (err) {
     console.error("updateProductStatus error:", err);
     res.status(500).json({ message: "Internal server error", error: err.message });
@@ -289,7 +311,17 @@ exports.updateModerateStatus = async (req, res) => {
       reason,
     });
 
-    res.json({ message: "Moderation updated successfully", product });
+    // Trả về sản phẩm có is_paid
+    const refreshed = await Product.findByPk(id, {
+      attributes: { include: ["is_paid"] },
+      include: [
+        { model: ProductMedia, as: "media" },
+        { model: Category, as: "category" },
+        { model: Member, as: "member" },
+      ],
+    });
+
+    res.json({ message: "Moderation updated successfully", product: refreshed });
   } catch (err) {
     console.error("updateModerateStatus error:", err);
     res.status(500).json({ message: "Internal server error", error: err.message });
@@ -307,6 +339,7 @@ exports.getProductByMemberId = async (req, res) => {
 
     const products = await Product.findAll({
       where: { member_id: memberId },
+      attributes: { include: ["is_paid"] },
       include: [
         { model: ProductMedia, as: "media" },
         { model: Category, as: "category" },
