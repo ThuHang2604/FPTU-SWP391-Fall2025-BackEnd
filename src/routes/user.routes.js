@@ -13,106 +13,34 @@ const adminMiddleware = require("../middlewares/adminMiddleware");
 
 /**
  * @swagger
- * components:
- *   securitySchemes:
- *     bearerAuth:
- *       type: http
- *       scheme: bearer
- *       bearerFormat: JWT
- *
- *   schemas:
- *     User:
- *       type: object
- *       properties:
- *         id:
- *           type: integer
- *           example: 1
- *         full_name:
+ * /api/users/search-buyer:
+ *   get:
+ *     summary: Tìm kiếm người mua theo email hoặc số điện thoại
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: query
+ *         schema:
  *           type: string
- *           example: "Nguyễn Văn A"
- *         email:
- *           type: string
- *           example: "admin@example.com"
- *         phone:
- *           type: string
- *           example: "0909123456"
- *         avatar:
- *           type: string
- *           example: "https://example.com/avatar.jpg"
- *         role:
- *           type: string
- *           enum: [MEMBER, ADMIN]
- *           example: "ADMIN"
- *         status:
- *           type: string
- *           enum: [ACTIVE, INACTIVE, PENDING]
- *           example: "ACTIVE"
- *         created_at:
- *           type: string
- *           format: date-time
- *           example: "2025-10-29T09:12:00Z"
- *         updated_at:
- *           type: string
- *           format: date-time
- *           example: "2025-10-29T09:20:00Z"
- *
- *     CreateAdminRequest:
- *       type: object
- *       required:
- *         - full_name
- *         - email
- *         - password
- *       properties:
- *         full_name:
- *           type: string
- *           example: "Trần Quản Trị"
- *         email:
- *           type: string
- *           example: "newadmin@example.com"
- *         password:
- *           type: string
- *           example: "12345678"
- *         phone:
- *           type: string
- *           example: "0987654321"
- *         avatar:
- *           type: string
- *           example: "https://example.com/avatar-admin.png"
- *
- *     SearchBuyerResponse:
- *       type: object
- *       properties:
- *         success:
- *           type: boolean
- *           example: true
- *         data:
- *           type: object
- *           properties:
- *             buyer_id:
- *               type: integer
- *               example: 5
- *             full_name:
- *               type: string
- *               example: "Lê Thị Mua"
- *             email:
- *               type: string
- *               example: "buyer@example.com"
- *             phone:
- *               type: string
- *               example: "0900000003"
- *
- *     ApiResponse:
- *       type: object
- *       properties:
- *         success:
- *           type: boolean
- *           example: true
- *         message:
- *           type: string
- *           example: "Thao tác thành công."
- *         data:
- *           type: object
+ *         required: true
+ *         description: Email hoặc số điện thoại của người mua cần tìm
+ *     responses:
+ *       200:
+ *         description: Thông tin người mua hợp lệ
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SearchBuyerResponse'
+ *       400:
+ *         description: Thiếu tham số query
+ *       404:
+ *         description: Không tìm thấy người mua hợp lệ
+ *       500:
+ *         description: Lỗi server
  */
+router.get("/search-buyer", authMiddleware, userController.searchBuyer);
 
 /**
  * @swagger
@@ -296,36 +224,5 @@ router.delete("/:id", authMiddleware, adminMiddleware, userController.deleteUser
  *         description: Lỗi server
  */
 router.post("/admin", authMiddleware, adminMiddleware, userController.createAdmin);
-
-/**
- * @swagger
- * /api/users/search-buyer:
- *   get:
- *     summary: Tìm kiếm người mua theo email hoặc số điện thoại
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: query
- *         name: query
- *         schema:
- *           type: string
- *         required: true
- *         description: Email hoặc số điện thoại của người mua cần tìm
- *     responses:
- *       200:
- *         description: Thông tin người mua hợp lệ
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/SearchBuyerResponse'
- *       400:
- *         description: Thiếu tham số query
- *       404:
- *         description: Không tìm thấy người mua hợp lệ
- *       500:
- *         description: Lỗi server
- */
-router.get("/search-buyer", authMiddleware, userController.searchBuyer);
 
 module.exports = router;
