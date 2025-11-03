@@ -107,7 +107,7 @@ router.post("/", authMiddleware, reviewController.createReview);
  *         description: ID của sản phẩm
  *     responses:
  *       200:
- *         description: Danh sách đánh giá của sản phẩm
+ *         description: Danh sách đánh giá của sản phẩm (bao gồm tên & avatar của người viết)
  *         content:
  *           application/json:
  *             schema:
@@ -119,7 +119,36 @@ router.post("/", authMiddleware, reviewController.createReview);
  *                 reviews:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/Review'
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         example: 1
+ *                       rating:
+ *                         type: number
+ *                         example: 5
+ *                       comment:
+ *                         type: string
+ *                         example: "Sản phẩm rất tốt, pin dùng lâu."
+ *                       created_at:
+ *                         type: string
+ *                         format: date-time
+ *                         example: "2025-10-30T12:00:00Z"
+ *                       member:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                             example: 3
+ *                           user:
+ *                             type: object
+ *                             properties:
+ *                               full_name:
+ *                                 type: string
+ *                                 example: "Nguyễn Văn A"
+ *                               avatar:
+ *                                 type: string
+ *                                 example: "https://example.com/avatar.jpg"
  *       404:
  *         description: Không tìm thấy sản phẩm
  */

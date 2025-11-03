@@ -47,9 +47,23 @@ exports.createReview = async (req, res) => {
 exports.getReviewsByProduct = async (req, res) => {
   try {
     const { product_id } = req.params;
+
     const reviews = await Review.findAll({
       where: { product_id },
-      include: [{ model: Member, as: "member", attributes: ["id", "user_id"] }],
+      include: [
+        {
+          model: Member,
+          as: "member",
+          attributes: ["id", "user_id"],
+          include: [
+            {
+              model: db.User,
+              as: "user",
+              attributes: ["full_name", "avatar"], // thêm avatar nếu cần
+            },
+          ],
+        },
+      ],
     });
 
     const avgRating = reviews.length
@@ -58,6 +72,7 @@ exports.getReviewsByProduct = async (req, res) => {
 
     res.json({ average_rating: avgRating, reviews });
   } catch (error) {
+    console.error("❌ Lỗi getReviewsByProduct:", error);
     res.status(500).json({ message: "Lỗi máy chủ", error: error.message });
   }
 };
