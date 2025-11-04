@@ -1,6 +1,8 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const db = require("../models");
+const { OAuth2Client } = require("google-auth-library");
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const { User, Member, Admin } = db;
 const { Op } = db.Sequelize;
 
@@ -99,6 +101,67 @@ exports.login = async (req, res) => {
   } catch (error) {
     console.error("❌ Login Error:", error);
     res.status(500).json({ message: "Lỗi máy chủ nội bộ" });
+  }
+};
+
+// [POST] /api/auth/google-login
+exports.googleLogin = async (req, res) => {
+  try {
+    const { token } = req.body; // nhận Google ID token từ client (frontend)
+    if (!token) return res.status(400).json({ message: "Thiếu Google token." });
+
+    // Xác thực token từ Google
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name, picture } = payload;
+
+    // Kiểm tra người dùng đã tồn tại hay chưa
+    let user = await User.findOne({ where: { [Op.or]: [{ google_id: googleId }, { email }] } });
+
+    if (!user) {
+      // Tạo tài khoản mới nếu chưa có
+      user = await User.create({
+        full_name: name,
+        email,
+        google_id: googleId,
+        avatar: picture,
+        login_provider: "GOOGLE",
+        role: "MEMBER",
+      });
+
+      await Member.create({ user_id: user.id, country: "Vietnam" });
+    }
+
+    if (user.status !== "ACTIVE")
+      return res.status(403).json({ message: "Tài khoản của bạn đã bị vô hiệu hóa." });
+
+    const member = await Member.findOne({ where: { user_id: user.id } });
+
+    const jwtToken = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role, memberId: member?.id },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.json({
+      message: "Đăng nhập Google thành công.",
+      token: jwtToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        full_name: user.full_name,
+        avatar: user.avatar,
+        role: user.role,
+        memberId: member?.id,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Google Login Error:", error);
+    res.status(500).json({ message: "Lỗi xác thực Google." });
   }
 };
 

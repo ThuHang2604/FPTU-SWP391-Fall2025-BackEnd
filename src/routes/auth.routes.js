@@ -210,6 +210,44 @@ router.post("/login", authController.login);
 
 /**
  * @swagger
+ * /api/auth/google-login:
+ *   post:
+ *     summary: Đăng nhập bằng Google (frontend gửi ID token)
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 example: eyJhbGciOiJSUzI1NiIsImtpZCI6IjYzY2...
+ *     responses:
+ *       200:
+ *         description: Đăng nhập Google thành công
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "Đăng nhập Google thành công."
+ *               token: "eyJhbGciOiJIUzI1NiIsInR5cCI6..."
+ *               user:
+ *                 id: 1
+ *                 email: "user@example.com"
+ *                 full_name: "Nguyễn Văn A"
+ *                 avatar: "https://lh3.googleusercontent.com/abc123"
+ *                 role: "MEMBER"
+ *                 memberId: 3
+ *       400:
+ *         description: Thiếu Google token
+ *       500:
+ *         description: Lỗi xác thực Google
+ */
+router.post("/google-login", authController.googleLogin);
+
+/**
+ * @swagger
  * /api/auth/profile:
  *   get:
  *     summary: Lấy thông tin hồ sơ người dùng hiện tại
