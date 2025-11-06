@@ -14,10 +14,3 @@ USE ev_trading_platform;
 ALTER TABLE users
 ADD COLUMN google_id VARCHAR(255) UNIQUE AFTER email,
 ADD COLUMN login_provider ENUM('LOCAL', 'GOOGLE') DEFAULT 'LOCAL' AFTER password;
-
--- Thêm cột google_id và login_provider cho users
-ALTER TABLE users 
-ADD COLUMN google_id VARCHAR(255) UNIQUE NULL AFTER email;
-
-ALTER TABLE users 
-ADD COLUMN login_provider ENUM('LOCAL', 'GOOGLE') DEFAULT 'LOCAL' AFTER role;
