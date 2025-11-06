@@ -5,121 +5,140 @@ const ChatMessage = db.ChatMessage;
 const Member = db.Member;
 const User = db.User;
 const Product = db.Product;
-const { Op } = require("sequelize");
 
-// 🧠 [POST] /api/chat/chatbox
-// Tạo hoặc lấy chatbox cho một sản phẩm cụ thể
-// Body: { product_id, seller_id, buyer_id }
+// 🧠 [POST] /api/chat/chatbox - Create chatbox with composite key
 exports.createChatbox = async (req, res) => {
   try {
     const { product_id, seller_id, buyer_id } = req.body;
     
-    // Validate input
+    console.log('📦 [createChatbox] Request:', { product_id, seller_id, buyer_id });
+    
+    // Validate required fields
     if (!product_id || !seller_id || !buyer_id) {
       return res.status(400).json({ 
-        message: "Thiếu thông tin: product_id, seller_id, buyer_id là bắt buộc." 
+        message: "Thiếu thông tin: product_id, seller_id, buyer_id đều bắt buộc." 
       });
     }
 
-    // Kiểm tra product có tồn tại không
-    const product = await Product.findByPk(product_id);
-    if (!product) {
-      return res.status(404).json({ message: "Sản phẩm không tồn tại." });
-    }
-
-    // Kiểm tra seller_id có khớp với owner của product không
-    if (product.member_id !== seller_id) {
-      return res.status(400).json({ 
-        message: "seller_id không khớp với chủ sở hữu của sản phẩm." 
-      });
-    }
-
-    // Tìm hoặc tạo chatbox (findOrCreate with composite key)
-    const [chatbox, created] = await Chatbox.findOrCreate({
-      where: { product_id, seller_id, buyer_id },
-      defaults: { product_id, seller_id, buyer_id }
+    // Check if chatbox already exists
+    const existing = await Chatbox.findOne({ 
+      where: { 
+        product_id: parseInt(product_id), 
+        seller_id: parseInt(seller_id), 
+        buyer_id: parseInt(buyer_id) 
+      } 
     });
+    
+    if (existing) {
+      console.log('✅ [createChatbox] Chatbox already exists:', existing.toJSON());
+      return res.status(200).json({
+        data: existing,
+        isNew: false
+      });
+    }
 
-    res.status(created ? 201 : 200).json({
-      message: created ? "Tạo chatbox thành công." : "Chatbox đã tồn tại.",
+    // Create new chatbox
+    const chatbox = await Chatbox.create({ 
+      product_id: parseInt(product_id), 
+      seller_id: parseInt(seller_id), 
+      buyer_id: parseInt(buyer_id) 
+    });
+    
+    console.log('✅ [createChatbox] New chatbox created:', chatbox.toJSON());
+    res.status(201).json({
       data: chatbox,
-      isNew: created
+      isNew: true
     });
   } catch (error) {
-    console.error("❌ Lỗi tạo Chatbox:", error);
+    console.error("❌ [createChatbox] Error:", error);
     res.status(500).json({ message: "Lỗi tạo Chatbox", error: error.message });
   }
 };
 
-// 🗨️ [POST] /api/chat/messages
-// Gửi tin nhắn trong chatbox
-// Body: { product_id, seller_id, buyer_id, sender_id, message }
+// 🗨️ [POST] /api/chat/messages - Send message with composite key
 exports.sendMessage = async (req, res) => {
   try {
     const { product_id, seller_id, buyer_id, sender_id, message } = req.body;
     
-    // Validate input
+    console.log('💬 [sendMessage] Request:', { product_id, seller_id, buyer_id, sender_id, message: message?.substring(0, 50) });
+    
+    // Validate required fields
     if (!product_id || !seller_id || !buyer_id || !sender_id || !message) {
       return res.status(400).json({ 
-        message: "Thiếu thông tin: product_id, seller_id, buyer_id, sender_id, message là bắt buộc." 
+        message: "Thiếu thông tin: product_id, seller_id, buyer_id, sender_id và message đều bắt buộc." 
       });
     }
 
-    // Kiểm tra sender_id phải là seller hoặc buyer
-    if (sender_id !== seller_id && sender_id !== buyer_id) {
-      return res.status(403).json({ 
-        message: "Bạn không có quyền gửi tin nhắn trong chatbox này." 
-      });
-    }
-
-    // Kiểm tra chatbox có tồn tại không
+    // Check if chatbox exists
     const chatbox = await Chatbox.findOne({
-      where: { product_id, seller_id, buyer_id }
+      where: { 
+        product_id: parseInt(product_id), 
+        seller_id: parseInt(seller_id), 
+        buyer_id: parseInt(buyer_id) 
+      }
     });
 
     if (!chatbox) {
-      return res.status(404).json({ 
-        message: "Chatbox không tồn tại. Vui lòng tạo chatbox trước." 
-      });
+      console.error('❌ [sendMessage] Chatbox not found:', { product_id, seller_id, buyer_id });
+      return res.status(404).json({ message: "Chatbox not found" });
     }
 
-    // Tạo message mới
+    // Create message
     const newMsg = await ChatMessage.create({ 
-      product_id, 
-      seller_id, 
-      buyer_id, 
-      sender_id, 
+      product_id: parseInt(product_id), 
+      seller_id: parseInt(seller_id), 
+      buyer_id: parseInt(buyer_id), 
+      sender_id: parseInt(sender_id), 
       message 
     });
-
-    // Cập nhật updated_at của chatbox
-    await chatbox.update({ updated_at: new Date() });
-
+    
+    console.log('✅ [sendMessage] Message created:', newMsg.id);
+    
     res.status(201).json({
       message: "Đã gửi tin nhắn thành công.",
       data: newMsg,
     });
   } catch (error) {
-    console.error("❌ Lỗi gửi tin nhắn:", error);
+    console.error("❌ [sendMessage] Error:", error);
     res.status(500).json({ message: "Lỗi gửi tin nhắn", error: error.message });
   }
 };
 
-// 📥 [GET] /api/chat/messages?product_id=X&seller_id=Y&buyer_id=Z
-// Lấy tất cả tin nhắn trong một chatbox
+// 📥 [GET] /api/chat/messages - Get messages by composite key (query params)
 exports.getMessagesByChatbox = async (req, res) => {
   try {
     const { product_id, seller_id, buyer_id } = req.query;
+    
+    console.log('📥 [getMessagesByChatbox] Query:', { product_id, seller_id, buyer_id });
 
-    // Validate input
+    // Validate required fields
     if (!product_id || !seller_id || !buyer_id) {
       return res.status(400).json({ 
-        message: "Thiếu thông tin query: product_id, seller_id, buyer_id là bắt buộc." 
+        message: "Thiếu thông tin: product_id, seller_id, buyer_id đều bắt buộc." 
       });
     }
 
+    // Check if chatbox exists
+    const chatbox = await Chatbox.findOne({
+      where: { 
+        product_id: parseInt(product_id), 
+        seller_id: parseInt(seller_id), 
+        buyer_id: parseInt(buyer_id) 
+      }
+    });
+
+    if (!chatbox) {
+      console.log('⚠️ [getMessagesByChatbox] Chatbox not found - returning empty array');
+      return res.status(200).json([]); // Return empty array for new chatbox
+    }
+
+    // Get messages
     const messages = await ChatMessage.findAll({
-      where: { product_id, seller_id, buyer_id },
+      where: { 
+        product_id: parseInt(product_id), 
+        seller_id: parseInt(seller_id), 
+        buyer_id: parseInt(buyer_id) 
+      },
       include: [
         {
           model: Member,
@@ -137,31 +156,35 @@ exports.getMessagesByChatbox = async (req, res) => {
       order: [["created_at", "ASC"]],
     });
 
+    console.log(`✅ [getMessagesByChatbox] Found ${messages.length} messages`);
     res.status(200).json(messages);
   } catch (error) {
-    console.error("❌ Lỗi lấy tin nhắn:", error);
+    console.error("❌ [getMessagesByChatbox] Error:", error);
     res.status(500).json({ message: "Lỗi lấy tin nhắn", error: error.message });
   }
 };
 
-// 📦 [GET] /api/chat/chatboxes/:member_id
-// Lấy tất cả chatbox mà user là seller HOẶC buyer
+// 📦 [GET] /api/chat/chatboxes/:member_id - Get chatboxes for a member
 exports.getChatboxesByMember = async (req, res) => {
   try {
     const { member_id } = req.params;
+    
+    console.log('📦 [getChatboxesByMember] member_id:', member_id);
 
+    // Find chatboxes where member is either seller or buyer
+    const { Op } = require('sequelize');
     const chatboxes = await Chatbox.findAll({
       where: {
         [Op.or]: [
-          { seller_id: member_id },
-          { buyer_id: member_id }
+          { seller_id: parseInt(member_id) },
+          { buyer_id: parseInt(member_id) }
         ]
       },
       include: [
         {
           model: Product,
           as: "product",
-          attributes: ["id", "title", "price", "status"],
+          attributes: ["id", "title", "price"],
         },
         {
           model: Member,
@@ -188,46 +211,68 @@ exports.getChatboxesByMember = async (req, res) => {
           ],
         },
       ],
-      order: [["updated_at", "DESC"]], // Chatbox có tin nhắn mới nhất lên đầu
+      order: [["updated_at", "DESC"]],
     });
 
-    // Manually fetch latest message for each chatbox (due to composite key)
-    const chatboxesWithMessages = await Promise.all(
-      chatboxes.map(async (chatbox) => {
-        const latestMessage = await ChatMessage.findOne({
-          where: {
-            product_id: chatbox.product_id,
-            seller_id: chatbox.seller_id,
-            buyer_id: chatbox.buyer_id
-          },
+    console.log(`✅ [getChatboxesByMember] Found ${chatboxes.length} chatboxes`);
+    res.status(200).json(chatboxes);
+  } catch (error) {
+    console.error("❌ [getChatboxesByMember] Error:", error);
+    res.status(500).json({ message: "Lỗi lấy danh sách chatbox", error: error.message });
+  }
+};
+
+// 📦 [GET] /api/chat/chatboxes/product/:product_id - Get all chatboxes for a product
+exports.getChatboxesByProduct = async (req, res) => {
+  try {
+    const { product_id } = req.params;
+    
+    console.log('📦 [getChatboxesByProduct] product_id:', product_id);
+
+    // Find all chatboxes for this product
+    const chatboxes = await Chatbox.findAll({
+      where: { 
+        product_id: parseInt(product_id)
+      },
+      include: [
+        {
+          model: Product,
+          as: "product",
+          attributes: ["id", "title", "price", "member_id"],
+        },
+        {
+          model: Member,
+          as: "seller",
+          attributes: ["id"],
           include: [
             {
-              model: Member,
-              as: "sender",
-              attributes: ["id"],
-              include: [
-                {
-                  model: User,
-                  as: "user",
-                  attributes: ["full_name"],
-                },
-              ],
+              model: User,
+              as: "user",
+              attributes: ["full_name", "avatar"],
             },
           ],
-          order: [["created_at", "DESC"]],
-          limit: 1
-        });
+        },
+        {
+          model: Member,
+          as: "buyer",
+          attributes: ["id"],
+          include: [
+            {
+              model: User,
+              as: "user",
+              attributes: ["full_name", "avatar"],
+            },
+          ],
+        },
+      ],
+      order: [["updated_at", "DESC"]],
+    });
 
-        const chatboxData = chatbox.toJSON();
-        chatboxData.messages = latestMessage ? [latestMessage] : [];
-        return chatboxData;
-      })
-    );
-
-    res.status(200).json(chatboxesWithMessages);
+    console.log(`✅ [getChatboxesByProduct] Found ${chatboxes.length} chatboxes`);
+    res.status(200).json(chatboxes);
   } catch (error) {
-    console.error("❌ Lỗi lấy danh sách chatbox:", error);
-    res.status(500).json({ message: "Lỗi lấy danh sách chatbox", error: error.message });
+    console.error("❌ [getChatboxesByProduct] Error:", error);
+    res.status(500).json({ message: "Lỗi lấy danh sách chatbox của sản phẩm", error: error.message });
   }
 };
 
