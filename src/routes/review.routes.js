@@ -33,11 +33,11 @@ const authMiddleware = require("../middlewares/authMiddleware");
  *         comment:
  *           type: string
  *           example: "Sản phẩm hoạt động tốt, pin bền."
- *         createdAt:
+ *         created_at:
  *           type: string
  *           format: date-time
  *           example: "2025-10-27T10:00:00Z"
- *         updatedAt:
+ *         updated_at:
  *           type: string
  *           format: date-time
  *           example: "2025-10-27T10:10:00Z"
@@ -83,12 +83,6 @@ const authMiddleware = require("../middlewares/authMiddleware");
  *                   example: "Tạo đánh giá thành công."
  *                 review:
  *                   $ref: '#/components/schemas/Review'
- *       400:
- *         description: Đã đánh giá hoặc request không hợp lệ
- *       403:
- *         description: Không có quyền đánh giá sản phẩm này
- *       404:
- *         description: Không tìm thấy sản phẩm
  */
 router.post("/", authMiddleware, reviewController.createReview);
 
@@ -149,8 +143,6 @@ router.post("/", authMiddleware, reviewController.createReview);
  *                               avatar:
  *                                 type: string
  *                                 example: "https://example.com/avatar.jpg"
- *       404:
- *         description: Không tìm thấy sản phẩm
  */
 router.get("/product/:product_id", reviewController.getReviewsByProduct);
 
@@ -158,7 +150,7 @@ router.get("/product/:product_id", reviewController.getReviewsByProduct);
  * @swagger
  * /api/reviews/member/{memberId}:
  *   get:
- *     summary: Lấy tất cả đánh giá mà thành viên đã viết
+ *     summary: Lấy tất cả đánh giá mà thành viên đã viết (bao gồm tên & avatar của người review)
  *     tags: [Reviews]
  *     parameters:
  *       - in: path
@@ -166,16 +158,50 @@ router.get("/product/:product_id", reviewController.getReviewsByProduct);
  *         required: true
  *         schema:
  *           type: integer
- *         description: ID của thành viên
+ *         description: ID của thành viên (member_id)
  *     responses:
  *       200:
- *         description: Danh sách review của thành viên
+ *         description: Danh sách review của thành viên (bao gồm sản phẩm và thông tin người review)
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/Review'
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     example: 5
+ *                   rating:
+ *                     type: number
+ *                     example: 4
+ *                   comment:
+ *                     type: string
+ *                     example: "Sản phẩm ổn định, giao hàng nhanh."
+ *                   created_at:
+ *                     type: string
+ *                     example: "2025-11-06T08:00:00Z"
+ *                   product:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         example: 8
+ *                       title:
+ *                         type: string
+ *                         example: "Xe đạp điện Pega"
+ *                   reviewer:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                         example: 3
+ *                       full_name:
+ *                         type: string
+ *                         example: "Trần Bình"
+ *                       avatar:
+ *                         type: string
+ *                         example: "/uploads/avatars/3.jpg"
  */
 router.get("/member/:memberId", reviewController.getReviewsByMember);
 
@@ -195,12 +221,6 @@ router.get("/member/:memberId", reviewController.getReviewsByMember);
  *     responses:
  *       200:
  *         description: Danh sách đánh giá sản phẩm của người bán
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Review'
  */
 router.get("/seller/:sellerId", reviewController.getReviewsBySeller);
 
@@ -212,43 +232,6 @@ router.get("/seller/:sellerId", reviewController.getReviewsBySeller);
  *     tags: [Reviews]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID của review cần cập nhật
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               rating:
- *                 type: number
- *                 example: 4
- *               comment:
- *                 type: string
- *                 example: "Sau 1 tuần dùng, pin giảm nhẹ."
- *     responses:
- *       200:
- *         description: Cập nhật thành công
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Cập nhật đánh giá thành công."
- *                 review:
- *                   $ref: '#/components/schemas/Review'
- *       403:
- *         description: Không có quyền chỉnh sửa
- *       404:
- *         description: Không tìm thấy review
  */
 router.put("/:id", authMiddleware, reviewController.updateReview);
 
@@ -260,28 +243,6 @@ router.put("/:id", authMiddleware, reviewController.updateReview);
  *     tags: [Reviews]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID của review cần xóa
- *     responses:
- *       200:
- *         description: Xóa thành công
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Đã xóa đánh giá thành công."
- *       403:
- *         description: Không có quyền xóa
- *       404:
- *         description: Không tìm thấy review
  */
 router.delete("/:id", authMiddleware, reviewController.deleteReview);
 
