@@ -133,18 +133,23 @@ SELECT id, 1, 'APPROVED', 'Kiểm duyệt nội dung hợp lệ.' FROM products;
 
 -- =========================
 -- CHAT & REVIEW CHO GIAO DỊCH NGOÀI ĐỜI
+-- (NEW SCHEMA: Composite key - product_id, seller_id, buyer_id)
 -- =========================
-INSERT INTO chatboxes (host_id) VALUES (1);
-SET @chatbox_id = LAST_INSERT_ID();
 
-INSERT INTO chat_messages (chatbox_id, sender_id, message)
+-- Tạo chatbox cho giao dịch sản phẩm #7 (VinFast Klara S - ĐÃ BÁN)
+-- Seller: member_id = 1, Buyer: member_id = 2, Product: id = 7
+INSERT INTO chatboxes (product_id, seller_id, buyer_id)
+VALUES (7, 1, 2);
+
+-- Tin nhắn trao đổi giữa buyer (member_id=2) và seller (member_id=1)
+INSERT INTO messages (product_id, seller_id, buyer_id, sender_id, message)
 VALUES
-(@chatbox_id, 2, 'Chào anh, xe Klara còn không ạ?'),
-(@chatbox_id, 1, 'Xe còn nhé, bạn muốn qua xem xe không?'),
-(@chatbox_id, 2, 'Dạ mai em qua xem nhé.'),
-(@chatbox_id, 1, 'Ok em, mai gặp nha.');
+(7, 1, 2, 2, 'Chào anh, xe Klara còn không ạ?'),
+(7, 1, 2, 1, 'Xe còn nhé, bạn muốn qua xem xe không?'),
+(7, 1, 2, 2, 'Dạ mai em qua xem nhé.'),
+(7, 1, 2, 1, 'Ok em, mai gặp nha.');
 
--- Review sau giao dịch
+-- Review sau giao dịch (buyer review seller)
 INSERT INTO reviews (member_id, product_id, rating, comment)
 VALUES
 (2, 7, 5, 'Xe chạy tốt, đúng mô tả, người bán thân thiện và hỗ trợ tận tình!');
