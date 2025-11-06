@@ -81,15 +81,52 @@ exports.getReviewsByProduct = async (req, res) => {
 exports.getReviewsByMember = async (req, res) => {
   try {
     const { memberId } = req.params;
+
     const reviews = await Review.findAll({
       where: { member_id: memberId },
-      include: [{ model: Product, as: "product", attributes: ["id", "title"] }],
+      include: [
+        {
+          model: Product,
+          as: "product",
+          attributes: ["id", "title"],
+        },
+        {
+          model: Member,
+          as: "member",
+          include: [
+            {
+              model: User,
+              as: "user",
+              attributes: ["full_name", "avatar"], // ✅ Lấy tên & avatar
+            },
+          ],
+        },
+      ],
     });
-    res.json(reviews);
+
+    const formatted = reviews.map((r) => ({
+      id: r.id,
+      rating: r.rating,
+      comment: r.comment,
+      created_at: r.created_at,
+      product: {
+        id: r.product?.id,
+        title: r.product?.title,
+      },
+      reviewer: {
+        id: r.member_id,
+        full_name: r.member?.user?.full_name || "Ẩn danh",
+        avatar: r.member?.user?.avatar || null,
+      },
+    }));
+
+    res.status(200).json(formatted);
   } catch (error) {
+    console.error("❌ Lỗi getReviewsByMember:", error);
     res.status(500).json({ message: "Lỗi máy chủ", error: error.message });
   }
 };
+
 
 // 🏪 Lấy tất cả đánh giá của người bán (qua các sản phẩm họ bán)
 exports.getReviewsBySeller = async (req, res) => {
@@ -120,7 +157,7 @@ exports.getReviewsBySeller = async (req, res) => {
 exports.updateReview = async (req, res) => {
   try {
     const { id } = req.params;
-    const member_id = req.user.member_id;
+    const member_id = req.user.memberId;
     const { rating, comment } = req.body;
 
     const review = await Review.findByPk(id);
@@ -139,7 +176,7 @@ exports.updateReview = async (req, res) => {
 exports.deleteReview = async (req, res) => {
   try {
     const { id } = req.params;
-    const member_id = req.user.member_id;
+    const member_id = req.user.memberId;
 
     const review = await Review.findByPk(id);
     if (!review) return res.status(404).json({ message: "Không tìm thấy đánh giá." });

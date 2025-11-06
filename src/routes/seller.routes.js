@@ -14,7 +14,7 @@ const sellerController = require("../controllers/seller.controller");
  * /api/sellers/{id}:
  *   get:
  *     summary: Lấy thông tin chi tiết người bán và danh sách sản phẩm của họ
- *     description: Trả về thông tin cơ bản của người bán, trung bình đánh giá, cùng danh sách sản phẩm đã **APPROVED** hoặc **SOLD** kèm hình ảnh và các đánh giá chi tiết.
+ *     description: Trả về thông tin cơ bản của người bán (bao gồm họ tên, số điện thoại, avatar, thành phố), trung bình đánh giá và danh sách sản phẩm đã **APPROVED** hoặc **SOLD** kèm hình ảnh, đánh giá chi tiết.
  *     tags: [Sellers]
  *     parameters:
  *       - in: path
@@ -38,6 +38,9 @@ const sellerController = require("../controllers/seller.controller");
  *                 full_name:
  *                   type: string
  *                   example: "Nguyễn Văn A"
+ *                 phone:
+ *                   type: string
+ *                   example: "0901234567"        # ✅ Thêm vào đây
  *                 city:
  *                   type: string
  *                   example: "Hà Nội"

@@ -14,7 +14,7 @@ exports.getSellerProfile = async (req, res) => {
         {
           model: User,
           as: "user",
-          attributes: ["full_name", "avatar"],
+          attributes: ["full_name", "avatar", "phone"],
         },
         {
           model: Product,
@@ -66,6 +66,7 @@ exports.getSellerProfile = async (req, res) => {
     const response = {
       seller_id: seller.id,
       full_name: seller.user?.full_name,
+      phone: seller.user?.phone || null,
       city: seller.city,
       avatar: seller.user?.avatar,
       average_rating: averageRating,
