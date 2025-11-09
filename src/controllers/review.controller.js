@@ -144,7 +144,13 @@ exports.getReviewsBySeller = async (req, res) => {
         {
           model: Member,
           as: "member",
-          attributes: ["id", "user_id"],
+          include: [
+            {
+              model: User,
+              as: "user",
+              attributes: ["full_name", "avatar"], // ✅ Lấy tên & avatar
+            },
+          ],
         },
       ],
     });
