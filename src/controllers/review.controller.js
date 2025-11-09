@@ -1,6 +1,7 @@
 const db = require("../models");
 const Review = db.Review;
 const Product = db.Product;
+const User = db.User;
 const Member = db.Member;
 
 // 🧾 Thành viên tạo đánh giá sản phẩm
