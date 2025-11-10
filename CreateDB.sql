@@ -193,22 +193,52 @@ CREATE TABLE reviews (
 
 -- ==========================================
 -- CHATBOX & MESSAGES
+-- (Redesigned: Chatbox linked to product with composite PK)
 -- ==========================================
 CREATE TABLE chatboxes (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    host_id BIGINT NOT NULL,
+    product_id BIGINT NOT NULL COMMENT 'ID của sản phẩm được chat',
+    seller_id BIGINT NOT NULL COMMENT 'ID của người bán (owner của product)',
+    buyer_id BIGINT NOT NULL COMMENT 'ID của người mua (người nhấn "Nhắn tin cho người bán")',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (host_id) REFERENCES members(id) ON DELETE CASCADE
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Composite Primary Key: đảm bảo mỗi cặp (product, seller, buyer) có duy nhất 1 chatbox
+    PRIMARY KEY (product_id, seller_id, buyer_id),
+    
+    -- Foreign Keys
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    FOREIGN KEY (seller_id) REFERENCES members(id) ON DELETE CASCADE,
+    FOREIGN KEY (buyer_id) REFERENCES members(id) ON DELETE CASCADE,
+    
+    -- Indexes để tối ưu query
+    INDEX idx_seller (seller_id),
+    INDEX idx_buyer (buyer_id)
 );
 
-CREATE TABLE chat_messages (
+CREATE TABLE messages (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    chatbox_id BIGINT NOT NULL,
-    sender_id BIGINT NOT NULL,
+    
+    -- Composite Foreign Key đến chatboxes
+    product_id BIGINT NOT NULL COMMENT 'FK: product_id của chatbox',
+    seller_id BIGINT NOT NULL COMMENT 'FK: seller_id của chatbox',
+    buyer_id BIGINT NOT NULL COMMENT 'FK: buyer_id của chatbox',
+    
+    -- Sender của message (có thể là seller hoặc buyer)
+    sender_id BIGINT NOT NULL COMMENT 'ID của người gửi tin nhắn',
     message TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (chatbox_id) REFERENCES chatboxes(id) ON DELETE CASCADE,
-    FOREIGN KEY (sender_id) REFERENCES members(id) ON DELETE CASCADE
+    
+    -- Foreign Key đến chatboxes (composite)
+    FOREIGN KEY (product_id, seller_id, buyer_id) 
+        REFERENCES chatboxes(product_id, seller_id, buyer_id) 
+        ON DELETE CASCADE,
+    
+    -- Foreign Key đến sender
+    FOREIGN KEY (sender_id) REFERENCES members(id) ON DELETE CASCADE,
+    
+    -- Index để tối ưu query messages theo chatbox
+    INDEX idx_chatbox (product_id, seller_id, buyer_id),
+    INDEX idx_created (created_at)
 );
 
 -- ==========================================
