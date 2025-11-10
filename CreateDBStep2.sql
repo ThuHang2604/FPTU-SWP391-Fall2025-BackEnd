@@ -28,3 +28,24 @@ UPDATE products SET location = '62 Láng Hạ, phường Thành Công, quận Ba
 UPDATE products SET location = '117 Lý Thường Kiệt, phường 7, quận Tân Bình, TP.HCM' WHERE id = 8;
 UPDATE products SET location = '21 Trần Phú, phường Thạch Thang, quận Hải Châu, Đà Nẵng' WHERE id = 9;
 UPDATE products SET location = '55 Lê Lợi, phường Phú Nhuận, TP. Huế' WHERE id = 10;
+
+-- Chỉnh sửa hình ảnh cho phù hợp sản phẩm
+-- Cập nhật ảnh cho XE MÁY ĐIỆN (ELECTRIC_MOTORBIKE)
+UPDATE product_media pm
+JOIN products p ON pm.product_id = p.id
+SET pm.media_url = 'https://i.pinimg.com/736x/9b/be/00/9bbe005374cb1b4010c5dbff7b31a511.jpg'
+WHERE p.product_type = 'ELECTRIC_BIKE'
+  AND p.bike_type = 'ELECTRIC_MOTORBIKE';
+
+-- Cập nhật ảnh cho XE ĐẠP ĐIỆN (ELECTRIC_BICYCLE)
+UPDATE product_media pm
+JOIN products p ON pm.product_id = p.id
+SET pm.media_url = 'https://i.pinimg.com/1200x/46/98/27/4698273614cb5ea8668f7c63a0411129.jpg'
+WHERE p.product_type = 'ELECTRIC_BIKE'
+  AND p.bike_type = 'ELECTRIC_BICYCLE';
+
+-- Cập nhật ảnh cho Ô TÔ ĐIỆN (ELECTRIC_CAR)
+UPDATE product_media pm
+JOIN products p ON pm.product_id = p.id
+SET pm.media_url = 'https://i.pinimg.com/736x/b1/c5/77/b1c577cee64d437d5b578d9b69d9f82a.jpg'
+WHERE p.product_type = 'ELECTRIC_CAR';
