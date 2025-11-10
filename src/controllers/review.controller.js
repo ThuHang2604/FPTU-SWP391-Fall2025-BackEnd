@@ -1,6 +1,7 @@
 const db = require("../models");
 const Review = db.Review;
 const Product = db.Product;
+const User = db.User;
 const Member = db.Member;
 
 // 🧾 Thành viên tạo đánh giá sản phẩm
@@ -143,7 +144,13 @@ exports.getReviewsBySeller = async (req, res) => {
         {
           model: Member,
           as: "member",
-          attributes: ["id", "user_id"],
+          include: [
+            {
+              model: User,
+              as: "user",
+              attributes: ["full_name", "avatar"], // ✅ Lấy tên & avatar
+            },
+          ],
         },
       ],
     });
