@@ -15,6 +15,8 @@ CREATE TABLE users (
     full_name       VARCHAR(100) NOT NULL,
     email           VARCHAR(100) NOT NULL UNIQUE,
     password        VARCHAR(255) NOT NULL,
+    google_id       VARCHAR(255) UNIQUE,                   -- thêm cho đăng nhập Google
+    login_provider  ENUM('LOCAL', 'GOOGLE') DEFAULT 'LOCAL', -- phân biệt loại tài khoản
     phone           VARCHAR(20) UNIQUE,
     avatar          VARCHAR(255),
     role            ENUM('MEMBER', 'ADMIN') DEFAULT 'MEMBER',
@@ -122,6 +124,7 @@ CREATE TABLE products (
 
     -- Trạng thái & thời gian
     status ENUM('PENDING','APPROVED','REJECTED','SOLD','INACTIVE') DEFAULT 'PENDING',
+    is_paid TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Đã thanh toán', 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
