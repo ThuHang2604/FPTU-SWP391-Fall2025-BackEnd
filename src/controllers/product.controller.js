@@ -204,23 +204,31 @@ exports.updateProductInfo = async (req, res) => {
   const transaction = await db.sequelize.transaction();
   try {
     const { id } = req.params;
-    const product = await Product.findByPk(id);
+    const product = await db.Product.findByPk(id); // Sử dụng db.Product theo context file index.js
 
     if (!product || product.member_id !== req.user.memberId) {
+      await transaction.rollback(); // Nên rollback nếu thoát sớm
       return res.status(403).json({ message: "Không có quyền chỉnh sửa sản phẩm này." });
     }
 
-    // Loại bỏ status trong body để tránh bị cập nhật
+    // 1. Tách status ra để không cho phép user gửi status lên ghi đè trực tiếp
     const { status, ...payload } = req.body;
 
-    // Cập nhật thông tin mà không đụng vào status
+    // 2. Cập nhật thông tin từ payload
     Object.assign(product, payload);
+
+    // 3. Xử lý logic trạng thái:
+    // Nếu sản phẩm bị từ chối (REJECTED), khi sửa lại sẽ chuyển về PENDING để duyệt lại.
+    // Các trạng thái khác (APPROVED, PENDING, SOLD...) thì giữ nguyên.
+    if (product.status === 'REJECTED') {
+      product.status = 'PENDING';
+    }
 
     await product.save({ transaction });
 
     // Update media nếu có
     if (Array.isArray(req.body.media)) {
-      await ProductMedia.destroy({ where: { product_id: id }, transaction });
+      await db.ProductMedia.destroy({ where: { product_id: id }, transaction });
 
       const newMedia = req.body.media.map((m) => ({
         product_id: id,
@@ -228,14 +236,15 @@ exports.updateProductInfo = async (req, res) => {
         media_type: m.media_type || "IMAGE",
       }));
 
-      await ProductMedia.bulkCreate(newMedia, { transaction });
+      await db.ProductMedia.bulkCreate(newMedia, { transaction });
     }
 
     await transaction.commit();
 
-    const updated = await Product.findByPk(id, {
+    // Fetch lại dữ liệu mới nhất để trả về
+    const updated = await db.Product.findByPk(id, {
       attributes: { include: ["is_paid"] },
-      include: [{ model: ProductMedia, as: "media" }],
+      include: [{ model: db.ProductMedia, as: "media" }],
     });
 
     res.json(updated);
