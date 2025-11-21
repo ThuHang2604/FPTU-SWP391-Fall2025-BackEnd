@@ -86,7 +86,17 @@ exports.getProductDetail = async (req, res) => {
       include: [
         { model: ProductMedia, as: "media" },
         { model: Category, as: "category" },
-        { model: Member, as: "member" },
+        { 
+          model: Member, 
+          as: "member",
+          include: [
+            {
+              model: db.User,
+              as: "user",
+              attributes: ["id", "full_name", "avatar", "phone", "email"]
+            }
+          ]
+        },
       ],
     });
 
