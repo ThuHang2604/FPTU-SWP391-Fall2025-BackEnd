@@ -61,14 +61,68 @@ db.Review.belongsTo(db.Product, { foreignKey: "product_id", as: "product" });
 db.Member.hasMany(db.Notification, { foreignKey: "member_id", as: "notifications", onDelete: "CASCADE" });
 db.Notification.belongsTo(db.Member, { foreignKey: "member_id", as: "member" });
 
-// Chat modules
-db.Member.hasMany(db.Chatbox, { foreignKey: "host_id", as: "chatboxes", onDelete: "CASCADE" });
-db.Chatbox.belongsTo(db.Member, { foreignKey: "host_id", as: "host" });
+// Chat modules (NEW: composite key associations)
+// NOTE: Sequelize doesn't fully support composite FK associations,
+// so we define individual FK relationships only
 
-db.Chatbox.hasMany(db.ChatMessage, { foreignKey: "chatbox_id", as: "messages", onDelete: "CASCADE" });
-db.ChatMessage.belongsTo(db.Chatbox, { foreignKey: "chatbox_id", as: "chatbox" });
+// Chatbox ↔ Product
+db.Product.hasMany(db.Chatbox, { 
+  foreignKey: "product_id", 
+  as: "chatboxes", 
+  onDelete: "CASCADE" 
+});
+db.Chatbox.belongsTo(db.Product, { 
+  foreignKey: "product_id", 
+  as: "product" 
+});
 
-db.Member.hasMany(db.ChatMessage, { foreignKey: "sender_id", as: "sentMessages", onDelete: "CASCADE" });
-db.ChatMessage.belongsTo(db.Member, { foreignKey: "sender_id", as: "sender" });
+// Chatbox ↔ Member (seller)
+db.Member.hasMany(db.Chatbox, { 
+  foreignKey: "seller_id", 
+  as: "sellerChatboxes", 
+  onDelete: "CASCADE" 
+});
+db.Chatbox.belongsTo(db.Member, { 
+  foreignKey: "seller_id", 
+  as: "seller" 
+});
+
+// Chatbox ↔ Member (buyer)
+db.Member.hasMany(db.Chatbox, { 
+  foreignKey: "buyer_id", 
+  as: "buyerChatboxes", 
+  onDelete: "CASCADE" 
+});
+db.Chatbox.belongsTo(db.Member, { 
+  foreignKey: "buyer_id", 
+  as: "buyer" 
+});
+
+// ChatMessage ↔ Product (part of composite FK)
+db.Product.hasMany(db.ChatMessage, { 
+  foreignKey: "product_id", 
+  as: "messages", 
+  onDelete: "CASCADE" 
+});
+db.ChatMessage.belongsTo(db.Product, { 
+  foreignKey: "product_id", 
+  as: "product" 
+});
+
+// ChatMessage ↔ Member (sender)
+db.Member.hasMany(db.ChatMessage, { 
+  foreignKey: "sender_id", 
+  as: "sentMessages", 
+  onDelete: "CASCADE" 
+});
+db.ChatMessage.belongsTo(db.Member, { 
+  foreignKey: "sender_id", 
+  as: "sender" 
+});
+
+// NOTE: Composite FK (product_id, seller_id, buyer_id) relationship between 
+// Chatbox and ChatMessage is enforced at database level (see CreateDB.sql),
+// but we don't define it in Sequelize associations due to lack of support.
+// Instead, we manually include composite key in queries.
 
 module.exports = db;
