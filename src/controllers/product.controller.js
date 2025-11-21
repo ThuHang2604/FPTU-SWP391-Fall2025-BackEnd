@@ -210,20 +210,24 @@ exports.updateProductInfo = async (req, res) => {
       return res.status(403).json({ message: "Không có quyền chỉnh sửa sản phẩm này." });
     }
 
-    // Chặn user tự ý chỉnh is_paid nếu muốn (optional):
-    // const { is_paid, ...payload } = req.body;
-    // Object.assign(product, payload, { status: "PENDING" });
+    // Loại bỏ status trong body để tránh bị cập nhật
+    const { status, ...payload } = req.body;
 
-    Object.assign(product, req.body, { status: "PENDING" });
+    // Cập nhật thông tin mà không đụng vào status
+    Object.assign(product, payload);
+
     await product.save({ transaction });
 
+    // Update media nếu có
     if (Array.isArray(req.body.media)) {
       await ProductMedia.destroy({ where: { product_id: id }, transaction });
+
       const newMedia = req.body.media.map((m) => ({
         product_id: id,
         media_url: m.media_url,
         media_type: m.media_type || "IMAGE",
       }));
+
       await ProductMedia.bulkCreate(newMedia, { transaction });
     }
 
@@ -241,6 +245,7 @@ exports.updateProductInfo = async (req, res) => {
     res.status(500).json({ message: "Internal server error", error: err.message });
   }
 };
+
 
 // ========================
 // Cập nhật trạng thái sản phẩm (Member)
