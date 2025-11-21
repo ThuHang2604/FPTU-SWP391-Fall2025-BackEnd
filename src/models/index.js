@@ -120,9 +120,8 @@ db.ChatMessage.belongsTo(db.Member, {
   as: "sender" 
 });
 
-// NOTE: Composite FK (product_id, seller_id, buyer_id) relationship between 
-// Chatbox and ChatMessage is enforced at database level (see CreateDB.sql),
-// but we don't define it in Sequelize associations due to lack of support.
-// Instead, we manually include composite key in queries.
+// Payment ↔ Product (Thêm mới)
+db.Product.hasMany(db.Payment, { foreignKey: "product_id", as: "payments", onDelete: "SET NULL" });
+db.Payment.belongsTo(db.Product, { foreignKey: "product_id", as: "product" });
 
 module.exports = db;
