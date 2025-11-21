@@ -107,23 +107,40 @@ exports.login = async (req, res) => {
 // [POST] /api/auth/google-login
 exports.googleLogin = async (req, res) => {
   try {
-    const { token } = req.body; // nhận Google ID token từ client (frontend)
-    if (!token) return res.status(400).json({ message: "Thiếu Google token." });
+    const { token } = req.body; // Đây là ACCESS TOKEN gửi từ Frontend
+    
+    if (!token) {
+        return res.status(400).json({ message: "Thiếu Google Access Token." });
+    }
 
-    // Xác thực token từ Google
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID,
+    // 1. Dùng Access Token để lấy thông tin User từ Google API
+    // Sử dụng fetch (có sẵn trong Node 18+). Nếu Node thấp hơn, hãy dùng axios hoặc node-fetch
+    const googleResponse = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo`, {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
     });
 
-    const payload = ticket.getPayload();
+    if (!googleResponse.ok) {
+        return res.status(400).json({ message: "Token Google không hợp lệ hoặc đã hết hạn." });
+    }
+
+    const payload = await googleResponse.json();
+    // Payload trả về: { sub, name, given_name, picture, email, ... }
     const { sub: googleId, email, name, picture } = payload;
 
-    // Kiểm tra người dùng đã tồn tại hay chưa
-    let user = await User.findOne({ where: { [Op.or]: [{ google_id: googleId }, { email }] } });
+    console.log("✅ Google User Verified:", email);
 
+    // 2. Tìm User trong DB (theo Google ID hoặc Email)
+    let user = await User.findOne({ 
+        where: { 
+            [Op.or]: [{ google_id: googleId }, { email: email }] 
+        } 
+    });
+
+    // 3. Xử lý Logic User
     if (!user) {
-      // Tạo tài khoản mới nếu chưa có
+      // === TẠO USER MỚI (Đăng ký) ===
       user = await User.create({
         full_name: name,
         email,
@@ -131,22 +148,50 @@ exports.googleLogin = async (req, res) => {
         avatar: picture,
         login_provider: "GOOGLE",
         role: "MEMBER",
+        status: "ACTIVE"
       });
-
+      
+      // Tạo Member profile mặc định
       await Member.create({ user_id: user.id, country: "Vietnam" });
+
+    } else {
+      // === CẬP NHẬT USER CŨ (Đăng nhập) ===
+      // Link tài khoản nếu trước đó đăng ký bằng email/pass
+      let hasUpdate = false;
+      
+      if (!user.google_id) {
+          user.google_id = googleId;
+          user.login_provider = "GOOGLE"; 
+          hasUpdate = true;
+      }
+      // Cập nhật avatar mới nhất từ Google (tuỳ chọn)
+      if (picture && user.avatar !== picture) {
+          user.avatar = picture;
+          hasUpdate = true;
+      }
+      
+      if (hasUpdate) await user.save();
     }
 
-    if (user.status !== "ACTIVE")
-      return res.status(403).json({ message: "Tài khoản của bạn đã bị vô hiệu hóa." });
+    // 4. Kiểm tra trạng thái khóa
+    if (user.status !== "ACTIVE") {
+        return res.status(403).json({ message: "Tài khoản đã bị khóa." });
+    }
 
-    const member = await Member.findOne({ where: { user_id: user.id } });
+    // 5. Lấy hoặc tạo Member (đề phòng dữ liệu cũ bị thiếu)
+    let member = await Member.findOne({ where: { user_id: user.id } });
+    if (!member && user.role === "MEMBER") {
+         member = await Member.create({ user_id: user.id, country: "Vietnam" });
+    }
 
+    // 6. Tạo JWT Token của hệ thống
     const jwtToken = jwt.sign(
       { userId: user.id, email: user.email, role: user.role, memberId: member?.id },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
 
+    // 7. Trả về Client
     res.json({
       message: "Đăng nhập Google thành công.",
       token: jwtToken,
@@ -159,9 +204,10 @@ exports.googleLogin = async (req, res) => {
         memberId: member?.id,
       },
     });
+
   } catch (error) {
     console.error("❌ Google Login Error:", error);
-    res.status(500).json({ message: "Lỗi xác thực Google." });
+    res.status(500).json({ message: "Lỗi xác thực Google (Backend)." });
   }
 };
 
