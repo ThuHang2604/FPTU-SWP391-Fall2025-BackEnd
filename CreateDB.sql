@@ -150,12 +150,15 @@ CREATE TABLE product_media (
 CREATE TABLE payments (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     member_id BIGINT NOT NULL,
-    product_id BIGINT,
-    amount DECIMAL(15,2) NOT NULL,
+    product_id BIGINT, 
+    amount DECIMAL(15, 2) NOT NULL,
     payment_method VARCHAR(50),
-    payment_status ENUM('PENDING','COMPLETED','FAILED') DEFAULT 'PENDING',
-    paypal_order_id VARCHAR(255), 
+    paypal_capture_id VARCHAR(255), 
+    refund_reason VARCHAR(255),
+    payment_status ENUM('PENDING', 'COMPLETED', 'FAILED') DEFAULT 'PENDING',
+    paypal_order_id VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
     FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
 );
@@ -207,9 +210,7 @@ CREATE TABLE chatboxes (
 );
 
 -- ==========================================
--- CHAT_MESSAGES (ĐÃ SỬA)
--- Đổi tên table thành chat_messages cho khớp Model
--- Dùng chatbox_id thay vì composite key
+-- CHAT_MESSAGES 
 -- ==========================================
 CREATE TABLE chat_messages (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
