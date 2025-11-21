@@ -16,9 +16,9 @@ exports.createPayment = async (req, res) => {
     // LOGIC 1: Nạp ví theo gói (nếu có packageId)
     if (packageId) {
       const packages = [
-        { id: 1, name: "Gói 100K", usd: 4 },
-        { id: 2, name: "Gói 300K", usd: 12 },
-        { id: 3, name: "Gói 500K", usd: 20 },
+        { id: 1, name: "Gói free", usd: 0 },
+        { id: 2, name: "Gói VIP", usd: 2 },
+        { id: 3, name: "Gói Premium", usd: 4 },
       ];
       const selected = packages.find((p) => p.id === packageId);
       if (!selected)
