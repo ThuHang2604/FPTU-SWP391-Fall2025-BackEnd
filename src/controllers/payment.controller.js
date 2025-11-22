@@ -167,14 +167,20 @@ exports.successPayment = async (req, res) => {
 };
 
 // ⚙️ [POST] /api/payments/refund-rejected (MỚI: Member yêu cầu hoàn tiền)
+// ⚙️ [POST] /api/payments/refund-rejected (MỚI: Member yêu cầu hoàn tiền)
 exports.requestRefundForRejectedProduct = async (req, res) => {
   const t = await sequelize.transaction();
+  
+  // [QUAN TRỌNG] Khai báo biến ở ngoài try để có thể sử dụng trong catch
+  let product = null;
+  let payment = null;
+
   try {
     const { productId } = req.body;
     const memberId = req.user.memberId; // Lấy từ token
 
     // 1. Kiểm tra xem Product có tồn tại và thuộc về Member này không
-    const product = await Product.findOne({
+    product = await Product.findOne({
       where: { id: productId, member_id: memberId },
       transaction: t,
     });
@@ -191,7 +197,7 @@ exports.requestRefundForRejectedProduct = async (req, res) => {
     }
 
     // 3. Tìm giao dịch thanh toán PayPal thành công của sản phẩm này
-    const payment = await Payment.findOne({
+    payment = await Payment.findOne({
       where: {
         product_id: productId,
         payment_status: "COMPLETED",
@@ -213,7 +219,6 @@ exports.requestRefundForRejectedProduct = async (req, res) => {
     }
 
     // 4. Gọi PayPal API để Refund
-    // Lưu ý: Class này nằm trong namespace payments của paypal SDK
     const request = new paypal.payments.CapturesRefundRequest(payment.paypal_capture_id);
     request.requestBody({
       amount: {
@@ -225,7 +230,7 @@ exports.requestRefundForRejectedProduct = async (req, res) => {
 
     const refundResponse = await paypalClient.execute(request);
 
-    // 5. Xử lý kết quả từ PayPal (Status 201 = Created/Success)
+    // 5. Xử lý kết quả thành công từ PayPal (Status 201 = Created)
     if (refundResponse.statusCode === 201) {
       
       // Cập nhật Payment
@@ -247,15 +252,62 @@ exports.requestRefundForRejectedProduct = async (req, res) => {
       await t.commit();
       return res.status(200).json({ message: "Yêu cầu hoàn tiền thành công! Tiền đã được hoàn về PayPal." });
     } else {
+      // Nếu status không phải 201, ném lỗi xuống catch
       throw new Error("PayPal API did not return 201 status.");
     }
 
   } catch (error) {
+    // --- XỬ LÝ LỖI VÀ ĐỒNG BỘ DỮ LIỆU ---
+    
+    let errorData = null;
+    try {
+        // PayPal trả về lỗi dạng JSON string trong error.result
+        if (error.result) {
+            errorData = JSON.parse(error.result);
+        }
+    } catch (e) { /* Ignore json parse error */ }
+
+    const issueCode = errorData?.details?.[0]?.issue;
+
+    // TRƯỜNG HỢP ĐẶC BIỆT: PayPal báo "CAPTURE_FULLY_REFUNDED"
+    // Nghĩa là tiền đã về ví khách rồi, nhưng Database mình chưa cập nhật.
+    if (issueCode === 'CAPTURE_FULLY_REFUNDED') {
+        try {
+            // Nếu biến payment và product đã tìm thấy ở trên, ta tiến hành cập nhật luôn
+            if (payment && product) {
+                payment.payment_status = "REFUNDED";
+                payment.refund_reason = "Sync: Already Refunded on PayPal";
+                await payment.save({ transaction: t });
+
+                await PaymentHistory.create({
+                    payment_id: payment.id,
+                    status: "SUCCESS",
+                    note: "Đồng bộ: Giao dịch đã được hoàn tiền trên PayPal trước đó",
+                }, { transaction: t });
+                
+                product.is_paid = false;
+                await product.save({ transaction: t });
+
+                await t.commit(); // Lưu thay đổi
+                console.log(`[Fix] Synced refund status for payment #${payment.id}`);
+                
+                return res.status(200).json({ 
+                    message: "Hoàn tiền thành công (Hệ thống đã đồng bộ trạng thái từ PayPal)." 
+                });
+            }
+        } catch (subError) {
+            console.error("Error while syncing refund state:", subError);
+            // Nếu sync lỗi thì để nó chạy xuống rollback bên dưới
+        }
+    }
+
+    // Các lỗi khác: Rollback và báo lỗi 500
     await t.rollback();
     console.error("Refund Error:", error);
-    // Lấy message lỗi chi tiết từ PayPal nếu có
-    const msg = error.result ? JSON.parse(error.result).message : error.message;
-    res.status(500).json({ message: "Lỗi xử lý hoàn tiền: " + msg });
+    
+    const msg = errorData ? errorData.message : error.message;
+    // Trả về lỗi cho client
+    return res.status(500).json({ message: "Lỗi xử lý hoàn tiền: " + msg });
   }
 };
 

@@ -9,7 +9,7 @@ module.exports = (sequelize, DataTypes) => {
     paypal_capture_id: { type: DataTypes.STRING(255) }, // Để gọi API Refund
     refund_reason: { type: DataTypes.STRING(255) },     // Lưu lý do hoàn tiền (ví dụ: "Admin Rejected")
     payment_status: {
-      type: DataTypes.ENUM("PENDING", "COMPLETED", "FAILED"),
+      type: DataTypes.ENUM("PENDING", "COMPLETED", "FAILED", "REFUNDED"),
       defaultValue: "PENDING",
     },
     paypal_order_id: { type: DataTypes.STRING(255) },
