@@ -265,7 +265,8 @@ exports.updateProductStatus = async (req, res) => {
     const { status, buyer_id } = req.body;
     const memberId = req.user.memberId;
 
-    if (!["SOLD", "INACTIVE"].includes(status)) {
+    // [CHANGE 1] Thêm "PENDING" vào danh sách trạng thái hợp lệ
+    if (!["SOLD", "INACTIVE", "PENDING"].includes(status)) {
       return res.status(400).json({ message: "Trạng thái không hợp lệ." });
     }
 
@@ -276,7 +277,9 @@ exports.updateProductStatus = async (req, res) => {
       return res.status(403).json({ message: "Bạn không có quyền cập nhật sản phẩm này." });
     }
 
+    // Xử lý Logic
     if (status === "SOLD") {
+      // --- TRƯỜNG HỢP ĐÃ BÁN ---
       if (!buyer_id) {
         return res.status(400).json({ message: "Cần cung cấp buyer_id khi đánh dấu ĐÃ BÁN." });
       }
@@ -287,15 +290,18 @@ exports.updateProductStatus = async (req, res) => {
         return res.status(400).json({ message: "Người bán không thể là người mua chính mình." });
 
       await product.update({ status: "SOLD", buyer_id });
+
     } else {
-      await product.update({ status: "INACTIVE", buyer_id: null });
+      // --- [CHANGE 2] TRƯỜNG HỢP INACTIVE HOẶC PENDING ---
+      // Cả khi ẩn tin (INACTIVE) hoặc xin đăng lại (PENDING) đều cần reset buyer_id
+      await product.update({ status: status, buyer_id: null });
     }
 
     // Reload để đảm bảo trả về đủ thuộc tính (kèm is_paid)
     const withIsPaid = await Product.findByPk(id, {
       attributes: { include: ["is_paid"] },
       include: [
-{ model: ProductMedia, as: "media" },
+        { model: ProductMedia, as: "media" },
         { model: Category, as: "category" },
       ],
     });
