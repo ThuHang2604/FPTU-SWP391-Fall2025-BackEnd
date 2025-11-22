@@ -155,7 +155,7 @@ CREATE TABLE payments (
     payment_method VARCHAR(50),
     paypal_capture_id VARCHAR(255), 
     refund_reason VARCHAR(255),
-    payment_status ENUM('PENDING', 'COMPLETED', 'FAILED') DEFAULT 'PENDING',
+    payment_status ENUM('PENDING', 'COMPLETED', 'FAILED', 'REFUNDED') DEFAULT 'PENDING',
     paypal_order_id VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
