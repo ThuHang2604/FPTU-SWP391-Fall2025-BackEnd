@@ -299,6 +299,43 @@ router.put("/:id/status", authMiddleware, productController.updateProductStatus)
 
 /**
  * @swagger
+ * /api/products/refunded/my:
+ *   get:
+ *     summary: Lấy danh sách sản phẩm đã hoàn tiền của thành viên hiện tại
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     description: 
+ *       API này trả về danh sách sản phẩm đã bị hoàn tiền (Payment REFUNDED) thuộc về member đang đăng nhập.
+ *     responses:
+ *       200:
+ *         description: Danh sách sản phẩm hoàn tiền theo member hiện tại
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total:
+ *                   type: integer
+ *                   example: 2
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Product'
+ *       401:
+ *         description: Chưa đăng nhập
+ *       500:
+ *         description: Lỗi hệ thống
+ */
+router.get(
+  "/refunded/my",
+  authMiddleware,
+  productController.getMyRefundedProducts
+);
+
+
+/**
+ * @swagger
  * /api/products/{id}/moderate:
  *   put:
  *     summary: Admin duyệt bài đăng (APPROVED / REJECTED)
@@ -330,5 +367,34 @@ router.put("/:id/status", authMiddleware, productController.updateProductStatus)
 *         description: Không tìm thấy sản phẩm
  */
 router.put("/:id/moderate", authMiddleware, adminMiddleware, productController.updateModerateStatus);
+
+/**
+ * @swagger
+ * /api/products/refunded:
+ *   get:
+ *     summary: Lấy danh sách sản phẩm đã hoàn tiền (Payment REFUNDED)
+ *     tags: [Products]
+ *     description: 
+ *       Lấy tất cả sản phẩm có is_paid = false và có giao dịch Payment trạng thái REFUNDED.
+ *     responses:
+ *       200:
+ *         description: Danh sách sản phẩm đã hoàn tiền
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 count:
+ *                   type: integer
+ *                   example: 2
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Product'
+ *       500:
+ *         description: Lỗi hệ thống
+ */
+router.get("/refunded", authMiddleware, adminMiddleware, productController.getRefundedProducts);
+
 
 module.exports = router;

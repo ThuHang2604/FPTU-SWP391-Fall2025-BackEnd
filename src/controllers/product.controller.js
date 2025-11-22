@@ -380,3 +380,71 @@ exports.getProductByMemberId = async (req, res) => {
     res.status(500).json({ message: "Internal server error", error: err.message });
   }
 };
+
+// ========================
+// Lấy danh sách sản phẩm đã hoàn tiền (Admin)
+// ========================
+exports.getRefundedProducts = async (req, res) => {
+  try {
+    const products = await Product.findAll({
+      // Chỉ lấy sản phẩm có is_paid = false (đã hoàn tiền thì is_paid bị set về false)
+      where: { is_paid: false }, 
+      include: [
+        { model: ProductMedia, as: "media" },
+        { model: Category, as: "category" },
+        { model: Member, as: "member" },
+        {
+          model: db.Payment,
+          as: "payments",
+          // [QUAN TRỌNG] Chỉ lấy sản phẩm có record Payment trạng thái REFUNDED
+          where: { payment_status: "REFUNDED" }, 
+          required: true // Inner Join: Nếu không có payment REFUNDED thì không lấy Product đó
+        }
+      ],
+      order: [["updated_at", "DESC"]], // Sắp xếp theo thời gian cập nhật gần nhất
+    });
+
+    res.json({
+        count: products.length,
+        data: products
+    });
+  } catch (err) {
+    console.error("getRefundedProducts error:", err);
+    res.status(500).json({ message: "Lỗi lấy danh sách hoàn tiền", error: err.message });
+  }
+};
+
+// ========================
+// Lấy danh sách sản phẩm đã hoàn tiền (Member)
+// ========================
+exports.getMyRefundedProducts = async (req, res) => {
+  try {
+    const products = await Product.findAll({
+      where: { 
+        is_paid: false,
+        member_id: req.user.memberId
+      },
+      include: [
+        { model: ProductMedia, as: "media" },
+        { model: Category, as: "category" },
+        { model: Member, as: "member" },
+        {
+          model: db.Payment,
+          as: "payments",
+          where: { payment_status: "REFUNDED" },
+          required: true
+        }
+      ],
+      order: [["updated_at", "DESC"]],
+    });
+
+    res.json({
+      total: products.length,
+      data: products
+    });
+
+  } catch (err) {
+    console.error("getMyRefundedProducts error:", err);
+    res.status(500).json({ message: "Lỗi lấy danh sách hoàn tiền" });
+  }
+};
